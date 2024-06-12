@@ -33,8 +33,7 @@ class FavoriteViewSet(
         return self.get_recipe().favorite.get(author=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        recipe = self.get_recipe()
-        if Favorite.objects.filter(recipe=recipe.id).exists():
+        if Favorite.objects.filter(recipe=self.get_recipe()).exists():
             return Response(
                 {'errors': 'Вы уже подписаны на этот рецепт!'},
                 status=400,
