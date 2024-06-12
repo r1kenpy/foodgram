@@ -68,6 +68,3 @@ class Favorite(models.Model):
         verbose_name_plural = 'Избранное'
         ordering = ('author',)
         default_related_name = 'favorite'
-
-    def __str__(self) -> str:
-        return self.id
