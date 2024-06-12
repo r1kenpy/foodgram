@@ -15,7 +15,7 @@ class Tag(models.Model):
         default_related_name = 'tag'
 
     def __str__(self) -> str:
-        return self.name[20]
+        return self.name[:20]
 
 
 class Ingredient(models.Model):
@@ -41,7 +41,7 @@ class Recipe(models.Model):
     name = models.CharField(max_length=256, verbose_name='Название')
     text = models.TextField(verbose_name='Описание')
     image = models.ImageField(
-        verbose_name='Картинка', upload_to='recipes/images/'
+        verbose_name='Картинка', upload_to='recipe/images/'
     )
     ingredients = models.ManyToManyField(
         Ingredient, verbose_name='Ингредиенты'
@@ -57,3 +57,14 @@ class Recipe(models.Model):
 
     def __str__(self) -> str:
         return self.name[:20]
+
+
+class Favorite(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        ordering = ('author',)
+        default_related_name = 'favorite'
