@@ -66,5 +66,16 @@ class Favorite(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-        ordering = ('author',)
+        ordering = ('-recipe',)
         default_related_name = 'favorite'
+
+
+class ShoppingCart(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Корзина'
+        verbose_name_plural = 'Корзина'
+        ordering = ('-recipe',)
+        default_related_name = 'cart'
