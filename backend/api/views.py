@@ -1,5 +1,11 @@
+import io
+
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status, permissions
+from django.utils import timezone
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from rest_framework import viewsets, status, permissions, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -25,6 +31,7 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
+    pagination_class = pagination.PageNumberPagination
 
     @action(
         detail=True,
@@ -79,6 +86,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe.cart.filter(author=self.request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['GET'], detail=True)
-    def download_shopping_cart(self):
-        pass
+    @action(methods=['GET'], detail=False)
+    def download_shopping_cart(self, request):
+        shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
+            author=self.request.user
+        )
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
+        text = c.beginText()
+        text.setTextOrigin(20, 20)
+        text.setFont('Helvetica', 14)
+        text.textLine('Shopping list:')
+        for shopping_cart_item in shopping_cart:
+            ingredients = [
+                f'{ingredient.name}({ingredient.measurement_unit}): {ingredient.value}'
+                for ingredient in shopping_cart_item.recipe.ingredients.all()
+            ]
+
+        text.textLines(ingredients)
+        c.drawText(text)
+
+        c.showPage()
+        c.save()
+        buf.seek(0)
+        return FileResponse(
+            buf,
+            as_attachment=True,
+            filename=f'shopping_list_{timezone.now().date()}.pdf',
+        )
