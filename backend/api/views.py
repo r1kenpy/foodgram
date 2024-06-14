@@ -14,7 +14,7 @@ from .serializers import (
     IngredientSerializer,
     TagSerializer,
     RecipeSerializer,
-    FavoriteRecipeSerializer,
+    RecipeFromFavoriteAndCartSerializer,
 )
 
 
@@ -50,7 +50,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
 
             Favorite.objects.create(recipe=recipe, author=self.request.user)
-            serializer = FavoriteRecipeSerializer(recipe)
+            serializer = RecipeFromFavoriteAndCartSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if not recipe.favorite.filter(
@@ -76,7 +76,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ShoppingCart.objects.create(
                 recipe=recipe, author=self.request.user
             )
-            serializer = FavoriteRecipeSerializer(recipe)
+            serializer = RecipeFromFavoriteAndCartSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         # delete from cart
         if not recipe.cart.filter(author=self.request.user).exists():

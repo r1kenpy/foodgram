@@ -24,7 +24,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class FavoriteRecipeSerializer(serializers.ModelSerializer):
+class RecipeFromFavoriteAndCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
