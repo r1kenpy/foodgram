@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 
 User = get_user_model()
@@ -47,7 +48,10 @@ class Recipe(models.Model):
         Ingredient, verbose_name='Ингредиенты'
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
-    cooking_time = models.IntegerField(verbose_name='Время приготовления')
+    cooking_time = models.IntegerField(
+        validators=[MinValueValidator(limit_value=1)],
+        verbose_name='Время приготовления',
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -57,6 +61,25 @@ class Recipe(models.Model):
 
     def __str__(self) -> str:
         return self.name[:20]
+
+
+class AmountReceptIngredients(models.Model):
+    amount = models.PositiveIntegerField(
+        validators=[MinValueValidator(limit_value=1)],
+        verbose_name='Количество',
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+    )
+    ingredients = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE, verbose_name='Ингредиент'
+    )
+
+    class Meta:
+        verbose_name = 'Количество'
+        verbose_name_plural = 'Количество'
+        ordering = ('-amount',)
+        default_related_name = 'amount'
 
 
 class Favorite(models.Model):
