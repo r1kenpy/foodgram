@@ -18,6 +18,7 @@ from .serializers import (
     RecipeFromFavoriteAndCartSerializer,
     AuthorSerializer,
     AvatarSerializer,
+    SignUpSerializer,
 )
 
 
@@ -29,7 +30,15 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return self.request.user
 
     def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return SignUpSerializer
         return AuthorSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['GET'], serializer_class=AuthorSerializer)
     def me(self, request, *args, **kwargs):
@@ -58,6 +67,19 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             user.avatar.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    # @action(
+    #     detail=False,
+    #     methods=['POST'],
+    #     serializer_class=SignUpSerializer,
+    #     url_path='users/',
+    # )
+    # def signup(self, request, *args, **kwargs):
+    #     def post(self, request):
+    #         if not request.user.is_authenticated:
+    #             pass
+    #
+    #         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

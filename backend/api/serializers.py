@@ -7,6 +7,12 @@ from recipes.models import Ingredient, Tag, Recipe
 from users.models import CustomUser
 
 
+class SignUpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ('email', 'username', 'last_name', 'first_name', 'password')
+
+
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
