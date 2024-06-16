@@ -6,6 +6,7 @@ from .views import (
     TagViewSet,
     RecipeViewSet,
     CustomUserViewSet,
+    UserSignInAPIView,
 )
 
 if settings.DEBUG:
@@ -22,6 +23,7 @@ router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
     path('', include(router_v1.urls)),
-    path('auth/', include('djoser.urls')),
+    # path('auth/', include('djoser.urls')),
+    path('auth/token/login/', UserSignInAPIView.as_view(), name='user-signin'),
     path('auth/', include('djoser.urls.jwt')),
 ]

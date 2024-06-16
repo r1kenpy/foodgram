@@ -2,7 +2,7 @@ from django.contrib.auth.models import UserManager
 
 
 class CustomUserManager(UserManager):
-    def _create_user(
+    def create_user(
         self,
         email=None,
         username=None,
@@ -13,6 +13,8 @@ class CustomUserManager(UserManager):
     ):
         if not email:
             raise ValueError('Email must be set')
+        if not username:
+            raise ValueError('Username must be set')
         if not first_name:
             raise ValueError('First name must be set')
         if not last_name:

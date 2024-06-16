@@ -9,5 +9,6 @@ class CustomUser(AbstractUser):
     avatar = models.ImageField(
         blank=True, null=True, upload_to='users/', verbose_name=_('Аватар')
     )
+    email = models.EmailField(unique=True, verbose_name=_('Email'))
 
     objects = CustomUserManager()

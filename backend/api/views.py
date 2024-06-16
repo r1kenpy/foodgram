@@ -8,6 +8,8 @@ from reportlab.pdfgen import canvas
 from rest_framework import viewsets, status, permissions, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken
 
 from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
 from users.models import CustomUser
@@ -22,7 +24,30 @@ from .serializers import (
 )
 
 
+class UserSignInAPIView(APIView):
+    """Получение токена авторизации."""
+
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        user = get_object_or_404(
+            CustomUser,
+            email=request.data.get('email', ''),
+            password=request.data.get('password', ''),
+        )
+        # serializer = SignUpSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        return Response(
+            {'token': str((AccessToken.for_user(user)))},
+            status=status.HTTP_200_OK,
+        )
+
+
 class CustomUserViewSet(viewsets.ModelViewSet):
+    """Эндпоинт юзера. Позволяющий получить информацию
+    об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
+    """
+
     queryset = CustomUser.objects.all()
     pagination_class = pagination.PageNumberPagination
 
@@ -34,25 +59,37 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return SignUpSerializer
         return AuthorSerializer
 
+    # .
     def post(self, request, *args, **kwargs):
+        """Регистрация пользователя."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['GET'], serializer_class=AuthorSerializer)
+    # Личная информация о пользователе.
+    @action(
+        detail=False,
+        methods=['GET'],
+        serializer_class=AuthorSerializer,
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def me(self, request, *args, **kwargs):
+        """Получение данных об авторизованном юзере."""
         self.get_object = self.get_user
         if request.method == 'GET':
             return self.retrieve(request, *args, **kwargs)
 
+    # Изменене/удаление аватара.
     @action(
         detail=False,
         methods=['PUT', 'DELETE'],
         url_path='me/avatar',
         serializer_class=AvatarSerializer,
+        permission_classes=[permissions.IsAuthenticated],
     )
     def avatar(self, request, *args, **kwargs):
+        """Изменение или удаление аватара."""
         user = self.get_user()
         if request.method == 'PUT':
             serializer = AvatarSerializer(user, data=request.data)
@@ -68,19 +105,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    # @action(
-    #     detail=False,
-    #     methods=['POST'],
-    #     serializer_class=SignUpSerializer,
-    #     url_path='users/',
-    # )
-    # def signup(self, request, *args, **kwargs):
-    #     def post(self, request):
-    #         if not request.user.is_authenticated:
-    #             pass
-    #
-    #         return Response(status=status.HTTP_400_BAD_REQUEST)
-
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
@@ -93,6 +117,10 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    """Получение, изменение или удаление рецепта.
+    Так же сюда относится корзина, избранное и скачивание файлов.
+    """
+
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     pagination_class = pagination.PageNumberPagination
@@ -103,6 +131,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[permissions.IsAuthenticated],
     )
     def favorite(self, request, pk=None):
+        """Добавление или удаление рецепта из избранного"""
         recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
         if self.request.method == 'POST':
             if recipe.favorite.filter(
@@ -129,7 +158,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(methods=['POST', 'DELETE'], detail=True)
     def shopping_cart(self, request, pk=None):
-        # add to cart
+        """Добавление или удаление рецепта из корзины."""
         recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
         if self.request.method == 'POST':
             if recipe.cart.filter(author=self.request.user).exists():
@@ -152,6 +181,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(methods=['GET'], detail=False)
     def download_shopping_cart(self, request):
+        """Скачивание файла со списком и количеством ингредиентов."""
         shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
             author=self.request.user
         )

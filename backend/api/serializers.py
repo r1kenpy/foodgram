@@ -8,6 +8,9 @@ from users.models import CustomUser
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+
     class Meta:
         model = CustomUser
         fields = ('email', 'username', 'last_name', 'first_name', 'password')
