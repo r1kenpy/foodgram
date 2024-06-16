@@ -10,12 +10,54 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
+from users.models import CustomUser
 from .serializers import (
     IngredientSerializer,
     TagSerializer,
     RecipeSerializer,
     RecipeFromFavoriteAndCartSerializer,
+    AuthorSerializer,
+    AvatarSerializer,
 )
+
+
+class CustomUserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    pagination_class = pagination.PageNumberPagination
+
+    def get_user(self):
+        return self.request.user
+
+    def get_serializer_class(self):
+        return AuthorSerializer
+
+    @action(detail=False, methods=['GET'], serializer_class=AuthorSerializer)
+    def me(self, request, *args, **kwargs):
+        self.get_object = self.get_user
+        if request.method == 'GET':
+            return self.retrieve(request, *args, **kwargs)
+
+    @action(
+        detail=False,
+        methods=['PUT', 'DELETE'],
+        url_path='me/avatar',
+        serializer_class=AvatarSerializer,
+    )
+    def avatar(self, request, *args, **kwargs):
+        user = self.get_user()
+        if request.method == 'PUT':
+            serializer = AvatarSerializer(user, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if request.method == 'DELETE' and user.avatar:
+            user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -35,7 +77,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["POST", 'DELETE'],
+        methods=['POST', 'DELETE'],
         permission_classes=[permissions.IsAuthenticated],
     )
     def favorite(self, request, pk=None):

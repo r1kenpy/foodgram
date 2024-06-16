@@ -17,4 +17,10 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     search_fields = ('author', 'recipe')
 
 
-admin.site.register((Ingredient, Recipe, Tag))
+admin.site.register(
+    (
+        Ingredient,
+        Recipe,
+        Tag,
+    )
+)
