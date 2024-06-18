@@ -23,5 +23,10 @@ class CustomUserManager(UserManager):
             raise ValueError('Password must be set')
 
         return super().create_user(
-            email, username, first_name, last_name, password, **extra_fields
+            username=username,
+            email=email,
+            password=password,
+            last_name=last_name,
+            first_name=first_name,
+            **extra_fields
         )
