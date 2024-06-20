@@ -3,19 +3,127 @@ import io
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from djoser.views import UserViewSet
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from rest_framework import viewsets, status, pagination, permissions
+from rest_framework import pagination, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken
+from users.models import CustomUser
 
-from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
 from .serializers import (
+    AuthorSerializer,
+    AvatarSerializer,
+    CustomUserSerializer,
     IngredientSerializer,
-    TagSerializer,
     RecipeFromFavoriteAndCartSerializer,
-    ReadRecipeSerializer,
+    SubscribedSerializer,
+    TagSerializer,
 )
+
+
+class UserSignInAPIView(APIView):
+    """Получение токена авторизации."""
+
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        user = get_object_or_404(
+            CustomUser,
+            email=request.data.get('email', ''),
+            password=request.data.get('password', ''),
+        )
+        # serializer = SignUpSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        return Response(
+            {'token': str((AccessToken.for_user(user)))},
+            status=status.HTTP_200_OK,
+        )
+
+
+class CustomUserViewSet(UserViewSet):
+    """Эндпоинт юзера. Позволяющий получить информацию
+    об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
+    """
+
+    serializer_class = CustomUserSerializer
+
+    @action(
+        detail=False,
+        methods=["GET"],
+        serializer_class=AuthorSerializer,
+        permission_classes=[permissions.AllowAny],
+    )
+    def subscriptions(self, request, *args, **kwargs):
+        my = Subscription.objects.filter(user=request.user)
+        serializer = SubscribedSerializer(my, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # queryset = CustomUser.objects.all()
+    # pagination_class = pagination.PageNumberPagination
+    #
+    def get_user(self):
+        return self.request.user
+
+    #
+    # def get_serializer_class(self):
+    #     if self.request.method == 'POST':
+    #         return SignUpSerializer
+    #     return AuthorSerializer
+    #
+    # # .
+    # def post(self, request, *args, **kwargs):
+    #     """Регистрация пользователя."""
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #
+    @action(
+        detail=False,
+        methods=['GET'],
+        serializer_class=AuthorSerializer,
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def me(self, request, *args, **kwargs):
+        """Получение данных об авторизованном юзере."""
+        self.get_object = self.get_user
+        if request.method == 'GET':
+            return self.retrieve(request, *args, **kwargs)
+
+    @action(
+        detail=False,
+        methods=['PUT', 'DELETE'],
+        url_path='me/avatar',
+        serializer_class=AvatarSerializer,
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def avatar(self, request, *args, **kwargs):
+        """Изменение или удаление аватара."""
+        user = self.get_user()
+        if request.method == 'PUT':
+            serializer = AvatarSerializer(user, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if request.method == 'DELETE' and user.avatar:
+            user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -29,16 +137,21 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    """Получение, изменение или удаление рецепта.
+    Так же сюда относится корзина, избранное и скачивание файлов.
+    """
+
     queryset = Recipe.objects.all()
     serializer_class = ReadRecipeSerializer
     pagination_class = pagination.PageNumberPagination
 
     @action(
         detail=True,
-        methods=["POST", 'DELETE'],
+        methods=['POST', 'DELETE'],
         permission_classes=[permissions.IsAuthenticated],
     )
     def favorite(self, request, pk=None):
+        """Добавление или удаление рецепта из избранного"""
         recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
         if self.request.method == 'POST':
             if recipe.favorite.filter(
@@ -65,7 +178,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(methods=['POST', 'DELETE'], detail=True)
     def shopping_cart(self, request, pk=None):
-        # add to cart
+        """Добавление или удаление рецепта из корзины."""
         recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
         if self.request.method == 'POST':
             if recipe.cart.filter(author=self.request.user).exists():
@@ -88,9 +201,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(methods=['GET'], detail=False)
     def download_shopping_cart(self, request):
-        shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
-            author=self.request.user
-        )
+        """Скачивание файла со списком и количеством ингредиентов."""
+        shopping_cart = ShoppingCart.objects.prefetch_related(
+            'recipe'
+        ).filter(author=self.request.user)
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
         text = c.beginText()

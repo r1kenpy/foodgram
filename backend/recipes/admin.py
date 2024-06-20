@@ -1,12 +1,12 @@
 from django.contrib import admin
 
 from .models import (
+    AmountReceptIngredients,
+    Favorite,
     Ingredient,
     Recipe,
-    Tag,
-    Favorite,
     ShoppingCart,
-    AmountReceptIngredients,
+    Tag,
 )
 
 
@@ -24,4 +24,12 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     search_fields = ('author', 'recipe')
 
 
-admin.site.register((Ingredient, Recipe, Tag, AmountReceptIngredients))
+admin.site.register(
+    (
+        Ingredient,
+        Recipe,
+        Tag,
+        AmountReceptIngredients,
+        Subscription,
+    )
+)
