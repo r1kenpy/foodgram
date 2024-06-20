@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from rest_framework import viewsets, status, permissions, pagination
+from rest_framework import viewsets, status, pagination, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -13,8 +13,8 @@ from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
 from .serializers import (
     IngredientSerializer,
     TagSerializer,
-    RecipeSerializer,
     RecipeFromFavoriteAndCartSerializer,
+    ReadRecipeSerializer,
 )
 
 
@@ -30,7 +30,7 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    serializer_class = ReadRecipeSerializer
     pagination_class = pagination.PageNumberPagination
 
     @action(
@@ -99,18 +99,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         text.textLine('Shopping list:')
         for shopping_cart_item in shopping_cart:
             ingredients = [
-                f'{ingredient.name}({ingredient.measurement_unit}): {ingredient.value}'
+                f'{ingredient.name}({ingredient.measurement_unit}):'
                 for ingredient in shopping_cart_item.recipe.ingredients.all()
             ]
-
         text.textLines(ingredients)
         c.drawText(text)
-
         c.showPage()
         c.save()
         buf.seek(0)
+
         return FileResponse(
             buf,
-            as_attachment=True,
             filename=f'shopping_list_{timezone.now().date()}.pdf',
         )
