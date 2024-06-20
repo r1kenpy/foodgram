@@ -1,10 +1,37 @@
 import base64
 
 from django.core.files.base import ContentFile
+from djoser.serializers import UsernameSerializer
 from rest_framework import serializers
 
-from recipes.models import Ingredient, Tag, Recipe
+from recipes.models import Ingredient, Tag, Recipe, Subscription
 from users.models import CustomUser
+
+
+class CustomUserSerializer(UsernameSerializer):
+    # is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'id',
+            'username',
+            'last_name',
+            'first_name',
+            # 'is_subscribed',
+            'email',
+        )
+
+
+class SubscribedSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer()
+
+    class Meta:
+        model = Subscription
+        fields = (
+            'id',
+            'user',
+        )
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -35,6 +62,7 @@ class AvatarSerializer(serializers.ModelSerializer):
 
 class AuthorSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField()
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -45,8 +73,14 @@ class AuthorSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'avatar',
-            # is_subscribed,
+            'is_subscribed',
         )
+
+    def get_is_subscribed(self, obj):
+        print(self.context)
+        if obj.subscription.filter(user=self.context['request'].user).exists():
+            return True
+        return False
 
 
 class TagSerializer(serializers.ModelSerializer):

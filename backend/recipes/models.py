@@ -84,3 +84,26 @@ class ShoppingCart(models.Model):
         verbose_name_plural = _('Корзина')
         ordering = ('-recipe',)
         default_related_name = 'cart'
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Подписчик',
+        related_name='subscriber',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+        related_name='subscription',
+    )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        ordering = ('user',)
+
+    def __str__(self) -> str:
+        return f'{self.user} подписан -> {self.author}'

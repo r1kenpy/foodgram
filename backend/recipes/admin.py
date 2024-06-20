@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Ingredient, Recipe, Tag, Favorite, ShoppingCart
+from .models import (
+    Ingredient,
+    Recipe,
+    Tag,
+    Favorite,
+    Subscription,
+    ShoppingCart,
+)
 
 
 @admin.register(Favorite)
@@ -22,5 +29,6 @@ admin.site.register(
         Ingredient,
         Recipe,
         Tag,
+        Subscription,
     )
 )

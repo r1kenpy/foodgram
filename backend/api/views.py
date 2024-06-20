@@ -3,6 +3,7 @@ import io
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from djoser.views import UserViewSet
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from rest_framework import viewsets, status, permissions, pagination
@@ -11,16 +12,24 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
-from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
+from recipes.models import (
+    Ingredient,
+    Tag,
+    Recipe,
+    Favorite,
+    ShoppingCart,
+    Subscription,
+)
 from users.models import CustomUser
 from .serializers import (
     IngredientSerializer,
     TagSerializer,
     RecipeSerializer,
     RecipeFromFavoriteAndCartSerializer,
-    AuthorSerializer,
     AvatarSerializer,
-    SignUpSerializer,
+    CustomUserSerializer,
+    AuthorSerializer,
+    SubscribedSerializer,
 )
 
 
@@ -43,31 +52,44 @@ class UserSignInAPIView(APIView):
         )
 
 
-class CustomUserViewSet(viewsets.ModelViewSet):
+class CustomUserViewSet(UserViewSet):
     """Эндпоинт юзера. Позволяющий получить информацию
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
     """
 
-    queryset = CustomUser.objects.all()
-    pagination_class = pagination.PageNumberPagination
+    serializer_class = CustomUserSerializer
 
+    @action(
+        detail=False,
+        methods=["GET"],
+        serializer_class=AuthorSerializer,
+        permission_classes=[permissions.AllowAny],
+    )
+    def subscriptions(self, request, *args, **kwargs):
+        my = Subscription.objects.filter(user=request.user)
+        serializer = SubscribedSerializer(my, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # queryset = CustomUser.objects.all()
+    # pagination_class = pagination.PageNumberPagination
+    #
     def get_user(self):
         return self.request.user
 
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return SignUpSerializer
-        return AuthorSerializer
-
-    # .
-    def post(self, request, *args, **kwargs):
-        """Регистрация пользователя."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    # Личная информация о пользователе.
+    #
+    # def get_serializer_class(self):
+    #     if self.request.method == 'POST':
+    #         return SignUpSerializer
+    #     return AuthorSerializer
+    #
+    # # .
+    # def post(self, request, *args, **kwargs):
+    #     """Регистрация пользователя."""
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #
     @action(
         detail=False,
         methods=['GET'],
@@ -80,7 +102,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             return self.retrieve(request, *args, **kwargs)
 
-    # Изменене/удаление аватара.
     @action(
         detail=False,
         methods=['PUT', 'DELETE'],

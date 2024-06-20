@@ -12,10 +12,15 @@ class CustomUser(AbstractUser):
     email = models.EmailField(
         max_length=254, unique=True, verbose_name=_('Email')
     )
-    first_name = models.CharField(_('First Name'), max_length=150)
-    last_name = models.CharField(_('Last Name'), max_length=150)
+    first_name = models.CharField(_('Имя'), max_length=150)
+    last_name = models.CharField(_('Фамилия'), max_length=150)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('username',)

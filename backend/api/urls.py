@@ -5,6 +5,7 @@ from .views import (
     IngredientVeiwSet,
     TagViewSet,
     RecipeViewSet,
+    CustomUserViewSet,
 )
 
 if settings.DEBUG:
@@ -17,6 +18,7 @@ router_v1 = Router()
 router_v1.register(r'tags', TagViewSet, basename='tags')
 router_v1.register(r'ingredients', IngredientVeiwSet, basename='ingredients')
 router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
+router_v1.register(r'users', CustomUserViewSet, basename='users')
 
 urlpatterns = [
     path('', include(router_v1.urls)),
