@@ -1,54 +1,35 @@
 import io
 
+from django.contrib.auth import get_user_model
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from djoser.views import UserViewSet
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from rest_framework import pagination, permissions, status, viewsets, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from recipes.models import (
     Favorite,
     Ingredient,
     Recipe,
     ShoppingCart,
-    Subscription,
     Tag,
 )
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from rest_framework import pagination, permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import AccessToken
-from users.models import CustomUser
-
 from .serializers import (
     AuthorSerializer,
     AvatarSerializer,
     CustomUserSerializer,
     IngredientSerializer,
     RecipeFromFavoriteAndCartSerializer,
-    SubscribedSerializer,
     TagSerializer,
+    ReadRecipeSerializer,
+    RecipeSerializer,
 )
 
-
-class UserSignInAPIView(APIView):
-    """Получение токена авторизации."""
-
-    permission_classes = (permissions.AllowAny,)
-
-    def post(self, request):
-        user = get_object_or_404(
-            CustomUser,
-            email=request.data.get('email', ''),
-            password=request.data.get('password', ''),
-        )
-        # serializer = SignUpSerializer(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        return Response(
-            {'token': str((AccessToken.for_user(user)))},
-            status=status.HTTP_200_OK,
-        )
+User = get_user_model()
 
 
 class CustomUserViewSet(UserViewSet):
@@ -61,12 +42,12 @@ class CustomUserViewSet(UserViewSet):
     @action(
         detail=False,
         methods=["GET"],
-        serializer_class=AuthorSerializer,
+        serializer_class=CustomUserSerializer,
         permission_classes=[permissions.AllowAny],
     )
     def subscriptions(self, request, *args, **kwargs):
-        my = Subscription.objects.filter(user=request.user)
-        serializer = SubscribedSerializer(my, many=True)
+        my = User.objects.get(username=request.user.username).subscriber.all()
+        serializer = CustomUserSerializer(my, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # queryset = CustomUser.objects.all()
@@ -134,6 +115,9 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    permission_classes = [permissions.AllowAny]
+    search_fields = ('^name',)
+    filter_backends = (filters.SearchFilter,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -142,8 +126,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Recipe.objects.all()
-    serializer_class = ReadRecipeSerializer
+    # serializer_class = ReadRecipeSerializer
     pagination_class = pagination.PageNumberPagination
+    # permission_classes = (permissions.IsAuthenticated,)
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ReadRecipeSerializer
+        return RecipeSerializer
 
     @action(
         detail=True,
@@ -191,7 +181,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
             serializer = RecipeFromFavoriteAndCartSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        # delete from cart
         if not recipe.cart.filter(author=self.request.user).exists():
             return Response(
                 'Рецепта нет в корзине!', status.HTTP_400_BAD_REQUEST
@@ -202,9 +191,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(methods=['GET'], detail=False)
     def download_shopping_cart(self, request):
         """Скачивание файла со списком и количеством ингредиентов."""
-        shopping_cart = ShoppingCart.objects.prefetch_related(
-            'recipe'
-        ).filter(author=self.request.user)
+        shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
+            author=self.request.user
+        )
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
         text = c.beginText()

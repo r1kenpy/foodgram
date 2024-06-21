@@ -7,21 +7,22 @@ from .models import (
     Recipe,
     ShoppingCart,
     Tag,
+    Subscription,
 )
 
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'author', 'recipe')
-    list_filter = ('author', 'recipe')
-    search_fields = ('author', 'recipe')
+    list_display = ('id', 'user', 'recipe')
+    list_filter = ('user', 'recipe')
+    search_fields = ('user', 'recipe')
 
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
-    list_display = ('id', 'author', 'recipe')
-    list_filter = ('author', 'recipe')
-    search_fields = ('author', 'recipe')
+    list_display = ('id', 'user', 'recipe')
+    list_filter = ('user', 'recipe')
+    search_fields = ('user', 'recipe')
 
 
 admin.site.register(

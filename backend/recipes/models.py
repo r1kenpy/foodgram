@@ -8,9 +8,7 @@ User = get_user_model()
 
 class Tag(models.Model):
     name = models.CharField(max_length=32, verbose_name=_('Название'))
-    slug = models.SlugField(
-        max_length=32, verbose_name=_('Слаг'), unique=True
-    )
+    slug = models.SlugField(max_length=32, verbose_name=_('Слаг'), unique=True)
 
     class Meta:
         verbose_name = _('Тег')
@@ -86,8 +84,8 @@ class AmountReceptIngredients(models.Model):
 
 
 class Favorite(models.Model):
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_('Автор')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_('Пользователь')
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
@@ -101,7 +99,7 @@ class Favorite(models.Model):
 
 
 class ShoppingCart(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
 
     class Meta:
