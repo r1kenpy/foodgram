@@ -1,10 +1,12 @@
 from django.conf import settings
 from django.urls import include, path
 
-from .views import (
+from api.views import (
     IngredientVeiwSet,
     TagViewSet,
     RecipeViewSet,
+)
+from users.views import (
     CustomUserViewSet,
 )
 
@@ -19,6 +21,7 @@ router_v1.register(r'tags', TagViewSet, basename='tags')
 router_v1.register(r'ingredients', IngredientVeiwSet, basename='ingredients')
 router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
 router_v1.register(r'users', CustomUserViewSet, basename='users')
+
 
 urlpatterns = [
     path('', include(router_v1.urls)),

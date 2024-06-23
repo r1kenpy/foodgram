@@ -119,7 +119,7 @@ class Subscription(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор',
+        verbose_name='Автор рецепта',
         related_name='subscription',
     )
 
@@ -129,4 +129,4 @@ class Subscription(models.Model):
         ordering = ('user',)
 
     def __str__(self) -> str:
-        return f'{self.user} подписан -> {self.author}'
+        return f'{self.user} подписан на {self.author}'
