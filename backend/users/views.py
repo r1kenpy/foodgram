@@ -5,14 +5,13 @@ from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.paginations import CustomLimitPagination
+from api.paginations import UserLimitPagination
 from api.serializers import (
     AvatarSerializer,
     CustomUserSerializer,
     SubscribeSerializer,
 )
 from recipes.models import Subscription
-from users.models import CustomUser
 
 User = get_user_model()
 
@@ -22,16 +21,18 @@ class CustomUserViewSet(UserViewSet):
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
     """
 
-    pagination_class = CustomLimitPagination
+    pagination_class = UserLimitPagination
+
+    def get_user(self):
+        return self.request.user
 
     @action(
         detail=False,
         methods=('GET',),
         serializer_class=CustomUserSerializer,
         permission_classes=(permissions.IsAuthenticated,),
-        url_path='subscriptions',
     )
-    def user_subscriptions(self, request):
+    def subscriptions(self, request):
         user = request.user
         if request.method == "GET":
             subs = User.objects.get(
@@ -70,25 +71,26 @@ class CustomUserViewSet(UserViewSet):
         serializer_class=CustomUserSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
-    def subscriptions(self, request, id=None):
+    def subscribe(self, request, id=None):
         user = request.user
-        author = get_object_or_404(CustomUser, id=id)
+        author = self.get_object()
         if request.method == "POST":
             if author == user:
                 return Response(
                     {'errors': 'Нельзя подписаться на самого себя'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if author.subscription.filter(user=user).exists():
-                return Response(
-                    {'errors': 'Вы уже подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            new_sub = Subscription.objects.create(
+            # if author.subscription.filter(user=user).exists():
+            #     return Response(
+            #         {'errors': 'Вы уже подписаны на этого пользователя'},
+            #         status=status.HTTP_400_BAD_REQUEST,
+            #     )
+            Subscription.objects.create(
                 user=user,
                 author=author,
             )
-            serializer = SubscribeSerializer(new_sub)
+            serializer = SubscribeSerializer(author)
+            serializer.context["request"] = self.request
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         subscription = get_object_or_404(
@@ -96,9 +98,6 @@ class CustomUserViewSet(UserViewSet):
         )
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def get_user(self):
-        return self.request.user
 
     @action(
         detail=False,
