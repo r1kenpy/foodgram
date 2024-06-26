@@ -5,7 +5,7 @@ from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.paginations import UserLimitPagination
+from api.paginations import LimitSizePagination
 from api.serializers import (
     AvatarSerializer,
     CustomUserSerializer,
@@ -21,7 +21,7 @@ class CustomUserViewSet(UserViewSet):
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
     """
 
-    pagination_class = UserLimitPagination
+    pagination_class = LimitSizePagination
 
     def get_user(self):
         return self.request.user
@@ -40,30 +40,6 @@ class CustomUserViewSet(UserViewSet):
             ).subscriber.all()
             serializer = CustomUserSerializer(subs, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        # author = get_object_or_404(CustomUser, id=id)
-        # if request.method == "POST":
-        #     if author == user:
-        #         return Response(
-        #             {'errors': 'Нельзя подписаться на самого себя'},
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-        #     if author.subscription.filter(user=user).exists():
-        #         return Response(
-        #             {'errors': 'Вы уже подписаны на этого пользователя'},
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-        #     new_sub = Subscription.objects.create(
-        #         user=user,
-        #         author=author,
-        #     )
-        #     serializer = SubscribeSerializer(new_sub)
-        #     return Response(serializer.data, status=status.HTTP_201_CREATED)
-        #
-        # subscription = get_object_or_404(
-        #     Subscription, user=user, author=author
-        # )
-        # subscription.delete()
-        # return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -80,11 +56,11 @@ class CustomUserViewSet(UserViewSet):
                     {'errors': 'Нельзя подписаться на самого себя'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            # if author.subscription.filter(user=user).exists():
-            #     return Response(
-            #         {'errors': 'Вы уже подписаны на этого пользователя'},
-            #         status=status.HTTP_400_BAD_REQUEST,
-            #     )
+            if author.subscription.filter(user=user).exists():
+                return Response(
+                    {'errors': 'Вы уже подписаны на этого пользователя'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             Subscription.objects.create(
                 user=user,
                 author=author,

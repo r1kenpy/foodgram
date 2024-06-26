@@ -97,6 +97,9 @@ class Favorite(models.Model):
         ordering = ('-recipe',)
         default_related_name = 'favorite'
 
+    def __str__(self) -> str:
+        return f'Рецепт "{self.recipe.name}" в избарнном.'
+
 
 class ShoppingCart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

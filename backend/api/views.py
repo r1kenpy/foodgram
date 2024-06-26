@@ -4,10 +4,10 @@ from django.contrib.auth import get_user_model
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from rest_framework import (
-    pagination,
     permissions,
     status,
     viewsets,
@@ -26,6 +26,8 @@ from recipes.models import (
     Tag,
     Subscription,
 )
+from .filters import RecipesFilter
+from .paginations import LimitSizePagination
 from .serializers import (
     IngredientSerializer,
     RecipeFromFavoriteAndCartSerializer,
@@ -68,7 +70,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Recipe.objects.all()
-    pagination_class = pagination.PageNumberPagination
+    pagination_class = LimitSizePagination
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipesFilter
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
