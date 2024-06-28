@@ -46,7 +46,9 @@ class Recipe(models.Model):
         verbose_name=_('Картинка'), upload_to='recipe/images/'
     )
     ingredients = models.ManyToManyField(
-        Ingredient, verbose_name=_('Ингредиенты')
+        Ingredient,
+        through='AmountReceptIngredients',
+        verbose_name=_('Ингредиенты'),
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.IntegerField(

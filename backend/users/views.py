@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import permissions, status
 from rest_framework.decorators import action
@@ -29,22 +28,23 @@ class CustomUserViewSet(UserViewSet):
     @action(
         detail=False,
         methods=('GET',),
-        serializer_class=CustomUserSerializer,
+        serializer_class=SubscribeSerializer,
         permission_classes=(permissions.IsAuthenticated,),
+        # pagination_class=LimitSizePagination,
     )
     def subscriptions(self, request):
         user = request.user
         if request.method == "GET":
-            subs = User.objects.get(
-                username=request.user.username
-            ).subscriber.all()
-            serializer = CustomUserSerializer(subs, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            subs = User.objects.filter(subscription__user=user)
+            page = self.paginate_queryset(subs)
+            serializer = self.serializer_class(page, many=True)
+            serializer.context["request"] = self.request
+            return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
         methods=('POST', 'DELETE'),
-        serializer_class=CustomUserSerializer,
+        serializer_class=SubscribeSerializer,
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscribe(self, request, id=None):
@@ -65,15 +65,18 @@ class CustomUserViewSet(UserViewSet):
                 user=user,
                 author=author,
             )
-            serializer = SubscribeSerializer(author)
+            serializer = self.serializer_class(author)
             serializer.context["request"] = self.request
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        subscription = get_object_or_404(
-            Subscription, user=user, author=author
+        subscription = author.subscription.filter(user=user)
+        if subscription.exists():
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'errors': 'Вы не подписаны на данного пользователя!'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
-        subscription.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,

@@ -2,6 +2,7 @@ import base64
 
 from django.core.files.base import ContentFile
 from django.db.models import Sum
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
@@ -131,10 +132,18 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
         return obj.cart.filter(user=user).exists()
 
 
+class WriteIngredientSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'amount')
+
+
 class RecipeSerializer(serializers.ModelSerializer):
-    author = CustomUserSerializer()
-    ingredients = IngredientSerializer(many=True)
-    tags = TagSerializer(many=True)
+    author = CustomUserSerializer(read_only=True)
+    ingredients = WriteIngredientSerializer(many=True)
     image = Base64ImageField()
 
     class Meta:
@@ -149,7 +158,45 @@ class RecipeSerializer(serializers.ModelSerializer):
             'ingredients',
             'author',
         )
-        read_only_fields = ('author', 'id')
+        read_only_fields = ('id',)
+
+        # validators = [UniqueValidator(queryset=Tag.objects.all())]
+
+    # def validate_tags(self, tags):
+    #     print(tags)
+    #     pass
+
+    # def validate_ingredients(self, ingredients):
+    #     print(ingredients)
+    #     pass
+    #
+    # def validators(self):
+    #     print()
+
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+        object_ingredients = [
+            AmountReceptIngredients(
+                ingredients=get_object_or_404(
+                    Ingredient, id=ingredient.get('id')
+                ),
+                amount=ingredient.get('amount'),
+                recipe=recipe,
+            )
+            for ingredient in ingredients
+        ]
+        AmountReceptIngredients.objects.bulk_create(object_ingredients)
+
+        return recipe
+
+    def to_representation(self, recipe):
+        return ReadRecipeSerializer(
+            recipe, context={'request': self.context['request']}
+        ).data
 
 
 class SubscribeSerializer(CustomUserSerializer):
