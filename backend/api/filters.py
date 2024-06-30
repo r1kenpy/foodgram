@@ -1,7 +1,10 @@
 import django_filters
+from django.contrib.auth import get_user_model
 from django_filters.widgets import BooleanWidget
 
-from recipes.models import Recipe, Ingredient
+from recipes.models import Recipe, Ingredient, Tag
+
+User = get_user_model()
 
 
 class IngredientFilter(django_filters.FilterSet):
@@ -21,13 +24,19 @@ class RecipesFilter(django_filters.FilterSet):
         label='Корзина',
         widget=BooleanWidget(),
     )
-    tags = django_filters.CharFilter(field_name='tags__slug')
+    tags = django_filters.ModelMultipleChoiceFilter(
+        field_name='tags__slug',
+        to_field_name='slug',
+        queryset=Tag.objects.all(),
+        conjoined=True,
+    )
+    author = django_filters.ModelChoiceFilter(queryset=User.objects.all())
 
     class Meta:
         model = Recipe
         fields = (
             'tags',
-            'author__id',
+            'author',
             'is_favorited',
             'is_in_shopping_cart',
         )
