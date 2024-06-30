@@ -143,7 +143,9 @@ class WriteIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     author = CustomUserSerializer(read_only=True)
-    ingredients = WriteIngredientSerializer(many=True)
+    ingredients = WriteIngredientSerializer(
+        many=True,
+    )
     image = Base64ImageField()
 
     class Meta:
@@ -160,25 +162,42 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id',)
 
-        # validators = [UniqueValidator(queryset=Tag.objects.all())]
+    def validate(self, attrs):
+        ingredients = attrs.get('ingredients')
+        tags = attrs.get('tags')
+        if ingredients is None or len(ingredients) == 0:
+            raise serializers.ValidationError(
+                {'ingredients': 'Необходимо минимум 2 ингредиента'}
+            )
+        ingredients_id = [ingredient['id'] for ingredient in ingredients]
+        if len(ingredients_id) != len(set(ingredients_id)):
+            raise serializers.ValidationError(
+                {'ingredients': 'Переданы одинаковые ингредиенты'}
+            )
+        for ingredient in ingredients:
+            if ingredient['amount'] < 1:
+                raise serializers.ValidationError(
+                    {
+                        'amount': 'Количество ингредиентов не может быть меньше 1'
+                    }
+                )
+        try:
+            for ingredient in ingredients:
+                Ingredient.objects.get(id=ingredient['id'])
+        except Exception as e:
+            raise serializers.ValidationError({'ingredients': str(e)})
+        if tags is None or len(tags) == 0:
+            raise serializers.ValidationError(
+                {'tags': 'Нужно передать хоть один Тег'}
+            )
+        tags_id = [tag for tag in tags]
+        if len(tags_id) != len(set(tags_id)):
+            raise serializers.ValidationError(
+                {'tags': 'Переданы одинаковые теги'}
+            )
+        return attrs
 
-    # def validate_tags(self, tags):
-    #     print(tags)
-    #     pass
-
-    # def validate_ingredients(self, ingredients):
-    #     print(ingredients)
-    #     pass
-    #
-    # def validators(self):
-    #     print()
-
-    def create(self, validated_data):
-        validated_data['author'] = self.context['request'].user
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-        recipe.tags.set(tags)
+    def add_ingredients_in_recipe(self, ingredients, recipe):
         object_ingredients = [
             AmountReceptIngredients(
                 ingredients=get_object_or_404(
@@ -191,6 +210,22 @@ class RecipeSerializer(serializers.ModelSerializer):
         ]
         AmountReceptIngredients.objects.bulk_create(object_ingredients)
 
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+        self.add_ingredients_in_recipe(ingredients, recipe)
+        return recipe
+
+    def update(self, recipe, validated_data):
+        ingredients = validated_data.pop('ingredients', None)
+        tags = validated_data.pop('tags', None)
+        super().update(recipe, validated_data)
+        recipe.ingredients.clear()
+        recipe.tags.set(tags)
+        self.add_ingredients_in_recipe(ingredients, recipe)
         return recipe
 
     def to_representation(self, recipe):
