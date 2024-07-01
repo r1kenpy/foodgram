@@ -1,11 +1,14 @@
 import io
 
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.lib.pagesizes import letter
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from rest_framework import (
     permissions,
@@ -111,7 +114,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if not recipe.cart.filter(user=self.request.user).exists():
             return Response(
-                'Рецепта нет в корзине!', status.HTTP_400_BAD_REQUEST
+                {'errors': 'Рецепта нет в корзине!'},
+                status.HTTP_400_BAD_REQUEST,
             )
         recipe.cart.filter(user=self.request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -126,13 +130,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
         text = c.beginText()
         text.setTextOrigin(20, 20)
-        text.setFont('Helvetica', 14)
+        pdfmetrics.registerFont(TTFont('Arial', 'Arial.ttf'))
+        text.setFont('Arial', 14)
         if shopping_cart:
             text.textLine('Shopping list:')
             for shopping_cart_item in shopping_cart:
                 ingredients = [
-                    f'{ingredient.name}({ingredient.measurement_unit}):'
-                    for ingredient in shopping_cart_item.recipe.ingredients.all()
+                    f'{ingredient.name}({ingredient.measurement_unit}): {ingredient.amount.aggregate(Sum("amount")).get("amount__sum")}'
+                    for ingredient in set(
+                        shopping_cart_item.recipe.ingredients.all()
+                    )
                 ]
             text.textLines(ingredients)
         else:
