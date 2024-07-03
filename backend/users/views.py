@@ -16,9 +16,9 @@ User = get_user_model()
 
 
 class CustomUserViewSet(UserViewSet):
-    """Эндпоинт юзера. Позволяющий получить информацию
+    '''Эндпоинт юзера. Позволяющий получить информацию
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
-    """
+    '''
 
     pagination_class = LimitSizePagination
 
@@ -30,15 +30,14 @@ class CustomUserViewSet(UserViewSet):
         methods=('GET',),
         serializer_class=SubscribeSerializer,
         permission_classes=(permissions.IsAuthenticated,),
-        # pagination_class=LimitSizePagination,
     )
     def subscriptions(self, request):
         user = request.user
-        if request.method == "GET":
+        if request.method == 'GET':
             subs = User.objects.filter(subscription__user=user)
             page = self.paginate_queryset(subs)
             serializer = self.serializer_class(page, many=True)
-            serializer.context["request"] = self.request
+            serializer.context['request'] = self.request
             return self.get_paginated_response(serializer.data)
 
     @action(
@@ -50,7 +49,7 @@ class CustomUserViewSet(UserViewSet):
     def subscribe(self, request, id=None):
         user = request.user
         author = self.get_object()
-        if request.method == "POST":
+        if request.method == 'POST':
             if author == user:
                 return Response(
                     {'errors': 'Нельзя подписаться на самого себя'},
@@ -66,7 +65,7 @@ class CustomUserViewSet(UserViewSet):
                 author=author,
             )
             serializer = self.serializer_class(author)
-            serializer.context["request"] = self.request
+            serializer.context['request'] = self.request
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         subscription = author.subscription.filter(user=user)
@@ -85,7 +84,7 @@ class CustomUserViewSet(UserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def me(self, request, *args, **kwargs):
-        """Получение данных об авторизованном юзере."""
+        '''Получение данных об авторизованном юзере.'''
         self.get_object = self.get_user
         if request.method == 'GET':
             return self.retrieve(request, *args, **kwargs)
@@ -98,7 +97,7 @@ class CustomUserViewSet(UserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def avatar(self, request, *args, **kwargs):
-        """Изменение или удаление аватара."""
+        '''Изменение или удаление аватара.'''
         user = self.get_user()
         if request.method == 'PUT':
             serializer = AvatarSerializer(user, data=request.data)

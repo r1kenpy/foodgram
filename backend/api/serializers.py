@@ -167,7 +167,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = attrs.get('tags')
         if ingredients is None or len(ingredients) == 0:
             raise serializers.ValidationError(
-                {'ingredients': 'Необходимо минимум 2 ингредиента'}
+                {'ingredients': 'Необходимо минимум 1 ингредиент'}
             )
         ingredients_id = [ingredient['id'] for ingredient in ingredients]
         if len(ingredients_id) != len(set(ingredients_id)):

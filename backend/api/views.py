@@ -2,9 +2,11 @@ import io
 
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.baseconv import base64, BASE64_ALPHABET
 from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
@@ -17,6 +19,7 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from recipes.models import (
     Favorite,
@@ -67,6 +70,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return ReadRecipeSerializer
         return RecipeSerializer
+
+    @action(methods=['GET'], detail=True, url_path='get-link')
+    def getlink(self, request, pk=None):
+        recipe = self.get_object()
+        base = base64.encode(recipe.id)
+        encode_id = request.build_absolute_uri(
+            reverse('shortlink', args=(base,))
+        )
+        return Response({'short-link': encode_id}, status=status.HTTP_200_OK)
 
     @action(
         detail=True,
@@ -152,4 +164,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return FileResponse(
             buf,
             filename=f'shopping_list_{timezone.now().date()}.pdf',
+        )
+
+
+class ShortLinkView(APIView):
+
+    def get(self, request, encode_id=None):
+        if not set(encode_id).issubset(set(BASE64_ALPHABET)):
+            return Response({'errors': 'Запрещенный символ в ссылке.'})
+        decode_id = base64.decode(encode_id)
+        recipe = get_object_or_404(Recipe, pk=decode_id)
+        return HttpResponseRedirect(
+            request.build_absolute_uri(f'/api/recipes/{recipe.id}/')
         )

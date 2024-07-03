@@ -16,8 +16,8 @@ class Tag(models.Model):
         ordering = ('name',)
         default_related_name = 'tag'
 
-    def __str__(self) -> str:
-        return self.name[:20]
+    def __str__(self):
+        return self.name[:20].title()
 
 
 class Ingredient(models.Model):
@@ -32,7 +32,7 @@ class Ingredient(models.Model):
         ordering = ('name',)
         default_related_name = 'ingredient'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name[:20]
 
 
@@ -62,7 +62,7 @@ class Recipe(models.Model):
         ordering = ('name',)
         default_related_name = 'recipe'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name[:20]
 
 
@@ -84,6 +84,9 @@ class AmountReceptIngredients(models.Model):
         ordering = ('-amount',)
         default_related_name = 'amount'
 
+    def __str__(self):
+        return f'{self.ingredients.name[:20].title()}: {self.amount}'
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(
@@ -99,8 +102,12 @@ class Favorite(models.Model):
         ordering = ('-recipe',)
         default_related_name = 'favorite'
 
-    def __str__(self) -> str:
-        return f'Рецепт "{self.recipe.name}" в избарнном.'
+    def __str__(self):
+        return (
+            f'Рецепт '
+            f'"{self.recipe.name[:20].title()}" '
+            f'в избранном у {self.user.email[:20]}'
+        )
 
 
 class ShoppingCart(models.Model):
@@ -112,6 +119,11 @@ class ShoppingCart(models.Model):
         verbose_name_plural = _('Корзина')
         ordering = ('-recipe',)
         default_related_name = 'cart'
+
+    def __str__(self):
+        return (
+            f'{self.recipe[:20].title()} в избранно у {self.user.email[:20]}'
+        )
 
 
 class Subscription(models.Model):
@@ -133,5 +145,5 @@ class Subscription(models.Model):
         verbose_name_plural = 'Подписки'
         ordering = ('user',)
 
-    def __str__(self) -> str:
-        return f'{self.user} подписан на {self.author}'
+    def __str__(self):
+        return f'{self.user.email[:20]} подписан на {self.author.email[:20]}'
