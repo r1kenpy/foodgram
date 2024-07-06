@@ -6,48 +6,43 @@ from django.http import FileResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.baseconv import base64, BASE64_ALPHABET
+from django.utils.baseconv import BASE64_ALPHABET, base64
 from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from rest_framework import (
-    permissions,
-    status,
-    viewsets,
-)
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Tag,
-)
-from .filters import RecipesFilter, IngredientFilter
-from .paginations import LimitSizePagination
-from .permissions import ReadOrIsAuthenticatedPermission
-from .serializers import (
+from api.filters import IngredientFilter, RecipesFilter
+from api.paginations import LimitSizePagination
+from api.permissions import ReadOrIsAuthenticatedPermission
+from api.serializers import (
     IngredientSerializer,
-    RecipeFromFavoriteAndCartSerializer,
-    TagSerializer,
     ReadRecipeSerializer,
+    RecipeFromFavoriteAndCartSerializer,
     RecipeSerializer,
+    TagSerializer,
 )
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 
 User = get_user_model()
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    """Получение информации о тегах."""
+
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
 
 class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
+    """Получение информации об ингридиентах.
+    Возможен поиск по имени рецепту."""
+
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filterset_class = IngredientFilter
@@ -56,7 +51,7 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Получение, изменение или удаление рецепта.
-    Так же сюда относится корзина, избранное и скачивание файлов.
+    Так же сюда относится корзина, избранное и скачивание файла.
     """
 
     queryset = Recipe.objects.all()
@@ -73,6 +68,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(methods=['GET'], detail=True, url_path='get-link')
     def getlink(self, request, pk=None):
+        """Создание короткой ссылки."""
         recipe = self.get_object()
         base = base64.encode(recipe.id)
         encode_id = request.build_absolute_uri(
@@ -111,7 +107,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe.favorite.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=('POST', 'DELETE'), detail=True)
+    @action(
+        methods=('POST', 'DELETE'),
+        detail=True,
+        permission_classes=(permissions.IsAuthenticated,),
+    )
     def shopping_cart(self, request, pk=None):
         """Добавление или удаление рецепта из корзины."""
         recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
@@ -132,28 +132,35 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe.cart.filter(user=self.request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=('GET',), detail=False)
+    @action(
+        methods=('GET',),
+        detail=False,
+        permission_classes=(permissions.IsAuthenticated,),
+    )
     def download_shopping_cart(self, request):
         """Скачивание файла со списком и количеством ингредиентов."""
         shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
-            user=self.request.user
+            user=request.user
         )
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
         text = c.beginText()
         text.setTextOrigin(20, 20)
-        pdfmetrics.registerFont(TTFont('Arial', 'Arial.ttf'))
-        text.setFont('Arial', 14)
+        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        text.setFont('DejaVuSans', 14)
         if shopping_cart:
             text.textLine('Shopping list:')
             for shopping_cart_item in shopping_cart:
                 ingredients = [
-                    f'{ingredient.name}({ingredient.measurement_unit}): {ingredient.amount.aggregate(Sum("amount")).get("amount__sum")}'
+                    (
+                        f'{ingredient.name}({ingredient.measurement_unit}): '
+                        f'{ingredient.amount.aggregate(sum=Sum("amount"))["sum"]}'
+                    )
                     for ingredient in set(
                         shopping_cart_item.recipe.ingredients.all()
                     )
                 ]
-            text.textLines(ingredients)
+                text.textLines(ingredients)
         else:
             text.textLine('Shopping list is empty!')
         c.drawText(text)
@@ -168,6 +175,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class ShortLinkView(APIView):
+    """Декодирование короткой ссылки."""
 
     def get(self, request, encode_id=None):
         if not set(encode_id).issubset(set(BASE64_ALPHABET)):
@@ -175,5 +183,5 @@ class ShortLinkView(APIView):
         decode_id = base64.decode(encode_id)
         recipe = get_object_or_404(Recipe, pk=decode_id)
         return HttpResponseRedirect(
-            request.build_absolute_uri(f'/api/recipes/{recipe.id}/')
+            request.build_absolute_uri(f'/recipes/{recipe.id}')
         )

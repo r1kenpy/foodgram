@@ -7,12 +7,7 @@ from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
 from api.paginations import RecipesLimitPagination
-from recipes.models import (
-    Ingredient,
-    Recipe,
-    Tag,
-    AmountReceptIngredients,
-)
+from recipes.models import AmountReceptIngredients, Ingredient, Recipe, Tag
 from users.models import CustomUser
 
 
@@ -178,7 +173,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             if ingredient['amount'] < 1:
                 raise serializers.ValidationError(
                     {
-                        'amount': 'Количество ингредиентов не может быть меньше 1'
+                        'amount': (
+                            'Количество ингредиентов не может быть меньше 1'
+                        )
                     }
                 )
         try:

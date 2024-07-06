@@ -122,7 +122,8 @@ class ShoppingCart(models.Model):
 
     def __str__(self):
         return (
-            f'{self.recipe[:20].title()} в избранно у {self.user.email[:20]}'
+            f'{self.recipe.name[:20].title()} '
+            f'в избранно у {self.user.email[:20]}'
         )
 
 

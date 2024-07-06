@@ -5,11 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.paginations import LimitSizePagination
-from api.serializers import (
-    AvatarSerializer,
-    CustomUserSerializer,
-    SubscribeSerializer,
-)
+from api.serializers import (AvatarSerializer, CustomUserSerializer,
+                             SubscribeSerializer)
 from recipes.models import Subscription
 
 User = get_user_model()

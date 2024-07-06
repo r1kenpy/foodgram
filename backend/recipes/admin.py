@@ -1,15 +1,8 @@
 from django.contrib import admin
 from django.db.models import Sum
 
-from .models import (
-    AmountReceptIngredients,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Tag,
-    Subscription,
-)
+from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
+                     ShoppingCart, Subscription, Tag)
 
 
 @admin.register(Favorite)

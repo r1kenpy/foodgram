@@ -1,14 +1,8 @@
 from django.conf import settings
 from django.urls import include, path
 
-from api.views import (
-    IngredientVeiwSet,
-    TagViewSet,
-    RecipeViewSet,
-)
-from users.views import (
-    CustomUserViewSet,
-)
+from api.views import IngredientVeiwSet, RecipeViewSet, TagViewSet
+from users.views import CustomUserViewSet
 
 if settings.DEBUG:
     from rest_framework.routers import DefaultRouter as Router

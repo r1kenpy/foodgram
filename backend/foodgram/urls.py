@@ -8,7 +8,7 @@ from api.views import ShortLinkView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('s/<str:encode_id>', ShortLinkView.as_view(), name='shortlink'),
+    path('s/<str:encode_id>/', ShortLinkView.as_view(), name='shortlink'),
 ]
 
 
