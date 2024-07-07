@@ -27,7 +27,7 @@ services:
     command: cp -r /app/build/. /static/
     volumes:
       - static:/static
-      - ../frontend/:/app/result_build/ # возможно нужно удалить
+      - ../frontend/:/app/result_build/
   nginx:
     container_name: foodgram_proxy
     image: r1kenpy/foodgram_proxy
@@ -35,7 +35,7 @@ services:
     ports:
       - 10000:80
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/ # Возможно нужно удалить
+      - ./nginx.conf:/etc/nginx/conf.d/
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/static
