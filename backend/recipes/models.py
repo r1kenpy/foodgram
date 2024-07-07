@@ -50,10 +50,10 @@ class Recipe(models.Model):
         through='AmountReceptIngredients',
         verbose_name=_('Ингредиенты'),
     )
-    tags = models.ManyToManyField(Tag, verbose_name='Теги')
+    tags = models.ManyToManyField(Tag, verbose_name=_('Теги'))
     cooking_time = models.IntegerField(
         validators=[MinValueValidator(limit_value=1)],
-        verbose_name='Время приготовления',
+        verbose_name=_('Время приготовления'),
     )
 
     class Meta:
@@ -72,15 +72,15 @@ class AmountReceptIngredients(models.Model):
         verbose_name='Количество',
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+        Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
     )
     ingredients = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, verbose_name='Ингредиент'
+        Ingredient, on_delete=models.CASCADE, verbose_name=_('Ингредиент')
     )
 
     class Meta:
-        verbose_name = 'Количество'
-        verbose_name_plural = 'Количество'
+        verbose_name = _('Количество')
+        verbose_name_plural = _('Количество')
         ordering = ('-amount',)
         default_related_name = 'amount'
 
@@ -131,19 +131,19 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Подписчик',
+        verbose_name=_('Подписчик'),
         related_name='subscriber',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор рецепта',
+        verbose_name=_('Автор рецепта'),
         related_name='subscription',
     )
 
     class Meta:
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
+        verbose_name = _('Подписка')
+        verbose_name_plural = _('Подписки')
         ordering = ('user',)
 
     def __str__(self):

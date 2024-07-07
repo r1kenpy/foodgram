@@ -22,19 +22,20 @@ services:
     depends_on:
       - db
   frontend:
-    container_name: foodgram-front
+    container_name: foodgram_front
     image: r1kenpy/foodgram_front
     command: cp -r /app/build/. /static/
     volumes:
       - static:/static
-      - ../frontend/:/app/result_build/
+      - ../frontend/:/app/result_build/ # возможно нужно удалить
   nginx:
-    container_name: foodgram-proxy
-    image: nginx:1.25.4-alpine
+    container_name: foodgram_proxy
+    image: r1kenpy/foodgram_proxy
+    env_file: .env
     ports:
       - "10000:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf # Возможно нужно удалить
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/static
