@@ -102,10 +102,10 @@ jobs:
         with:
           context: ./frontend/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_frontend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_front:latest
 
-  build_gateway_and_push_to_docker_hub:
-    name: Push gateway Docker image to DockerHub
+  build_proxy_and_push_to_docker_hub:
+    name: Push proxy Docker image to DockerHub
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -123,7 +123,7 @@ jobs:
         with:
           context: ./nginx/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_gateway:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_proxy:latest
 
   deploy:
     runs-on: ubuntu-latest
