@@ -14,7 +14,7 @@ services:
       - pg_data:/var/lib/postgresql/data
   backend:
     container_name: foodgram-backend
-    image: r1kenpy/foodgram_backend
+    image: r1kenpy/foodgram_backend:latest
     env_file: .env
     volumes:
       - static:/static
@@ -23,14 +23,14 @@ services:
       - db
   frontend:
     container_name: foodgram_front
-    image: r1kenpy/foodgram_front
+    image: r1kenpy/foodgram_front:latest
     command: cp -r /app/build/. /static/
     volumes:
       - static:/static
       - ../frontend/:/app/result_build/
   nginx:
     container_name: foodgram_proxy
-    image: r1kenpy/foodgram_proxy
+    image: r1kenpy/foodgram_proxy:latest
     env_file: .env
     ports:
       - 10000:80
