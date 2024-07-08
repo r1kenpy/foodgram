@@ -20,9 +20,13 @@ from rest_framework.views import APIView
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import LimitSizePagination
 from api.permissions import ReadOrIsAuthenticatedPermission
-from api.serializers import (IngredientSerializer, ReadRecipeSerializer,
-                             RecipeFromFavoriteAndCartSerializer,
-                             RecipeSerializer, TagSerializer)
+from api.serializers import (
+    IngredientSerializer,
+    ReadRecipeSerializer,
+    RecipeFromFavoriteAndCartSerializer,
+    RecipeSerializer,
+    TagSerializer,
+)
 from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 
 User = get_user_model()
@@ -149,10 +153,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             for shopping_cart_item in shopping_cart:
                 ingredients = [
                     (
-                        f'{ingredient.name}({ingredient.measurement_unit}): '
-                        f'{ingredient.amount.aggregate(sum=Sum("amount"))["sum"]}'
+                        f'{ingred.name}({ingred.measurement_unit}): '
+                        f'{ingred.amount.aggregate(sum=Sum("amount"))["sum"]}'
                     )
-                    for ingredient in set(
+                    for ingred in set(
                         shopping_cart_item.recipe.ingredients.all()
                     )
                 ]
