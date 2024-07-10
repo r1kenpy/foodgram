@@ -1,20 +1,42 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-User = get_user_model()
+
+class User(AbstractUser):
+    avatar = models.ImageField(
+        blank=True, null=True, upload_to='users/', verbose_name=_('Аватар')
+    )
+    email = models.EmailField(
+        max_length=254, unique=True, verbose_name=_('Email')
+    )
+    first_name = models.CharField(_('Имя'), max_length=150)
+    last_name = models.CharField(_('Фамилия'), max_length=150)
+    username = models.CharField(
+        unique=True, max_length=150, verbose_name=_('Псевдоним пользователя')
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    class Meta:
+        verbose_name = _('Пользователь')
+        verbose_name_plural = _('Пользователи')
+        ordering = ('username',)
 
 
 class Tag(models.Model):
     name = models.CharField(max_length=32, verbose_name=_('Название'))
-    slug = models.SlugField(max_length=32, verbose_name=_('Слаг'), unique=True)
+    slug = models.SlugField(
+        max_length=32, verbose_name=_('Идентификатор'), unique=True
+    )
 
     class Meta:
         verbose_name = _('Тег')
         verbose_name_plural = _('Теги')
         ordering = ('name',)
-        default_related_name = 'tag'
+        default_related_name = 'tags'
 
     def __str__(self):
         return self.name[:20].title()
@@ -27,10 +49,10 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = _('Ингредиент')
-        verbose_name_plural = _('Ингредиенты')
+        verbose_name = _('Продукт')
+        verbose_name_plural = _('Продукты')
         ordering = ('name',)
-        default_related_name = 'ingredient'
+        default_related_name = 'ingredients'
 
     def __str__(self):
         return self.name[:20]
@@ -48,7 +70,7 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='AmountReceptIngredients',
-        verbose_name=_('Ингредиенты'),
+        verbose_name=_('Продукты'),
     )
     tags = models.ManyToManyField(Tag, verbose_name=_('Теги'))
     cooking_time = models.IntegerField(
@@ -60,7 +82,7 @@ class Recipe(models.Model):
         verbose_name = _('Рецепт')
         verbose_name_plural = _('Рецепты')
         ordering = ('name',)
-        default_related_name = 'recipe'
+        default_related_name = 'recipes'
 
     def __str__(self):
         return self.name[:20]
@@ -69,20 +91,20 @@ class Recipe(models.Model):
 class AmountReceptIngredients(models.Model):
     amount = models.PositiveIntegerField(
         validators=[MinValueValidator(limit_value=1)],
-        verbose_name='Количество',
+        verbose_name='Мера',
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
     )
     ingredients = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, verbose_name=_('Ингредиент')
+        Ingredient, on_delete=models.CASCADE, verbose_name=_('Продукт')
     )
 
     class Meta:
-        verbose_name = _('Количество')
-        verbose_name_plural = _('Количество')
+        verbose_name = _('Мера')
+        verbose_name_plural = _('Мера')
         ordering = ('-amount',)
-        default_related_name = 'amount'
+        default_related_name = 'amount_ingredients'
 
     def __str__(self):
         return f'{self.ingredients.name[:20].title()}: {self.amount}'
@@ -100,7 +122,7 @@ class Favorite(models.Model):
         verbose_name = _('Избранное')
         verbose_name_plural = _('Избранное')
         ordering = ('-recipe',)
-        default_related_name = 'favorite'
+        default_related_name = 'favorites'
 
     def __str__(self):
         return (
@@ -118,7 +140,7 @@ class ShoppingCart(models.Model):
         verbose_name = _('Корзина')
         verbose_name_plural = _('Корзина')
         ordering = ('-recipe',)
-        default_related_name = 'cart'
+        default_related_name = 'carts'
 
     def __str__(self):
         return (
@@ -132,13 +154,13 @@ class Subscription(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name=_('Подписчик'),
-        related_name='subscriber',
+        related_name='subscribers',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         verbose_name=_('Автор рецепта'),
-        related_name='subscription',
+        related_name='authors',
     )
 
     class Meta:

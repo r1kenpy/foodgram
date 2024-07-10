@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from api.paginations import RecipesLimitPagination
 from recipes.models import AmountReceptIngredients, Ingredient, Recipe, Tag
-from users.models import CustomUser
+from recipes.models import User
 
 
 class Base64ImageField(serializers.ImageField):
@@ -20,12 +20,12 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-class CustomUserSerializer(UserSerializer):
+class UserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     avatar = Base64ImageField(read_only=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = (
             'id',
             'username',
@@ -36,10 +36,24 @@ class CustomUserSerializer(UserSerializer):
             'avatar',
         )
         read_only_fields = (
-            'id',
             'avatar',
             'is_subscribed',
         )
+
+    # def validate_username(
+    #     self, data
+    # ):  # Что-то не то, не работает. нужно ппосотерть скольок длина по дефолту.
+    #     username = data.get('username')
+    #     if username == 'me':
+    #         raise serializers.ValidationError(
+    #             {'errors': 'Укажите другой username'}
+    #         )
+    #
+    #     if not re.match(r'^[\w.@+-]+\z$', username):
+    #         raise serializers.ValidationError(
+    #             {'errors': 'Искользованы недопустипые симполы'}
+    #         )
+    #     return data
 
     def get_is_subscribed(self, obj):
 
@@ -54,7 +68,7 @@ class AvatarSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ('avatar',)
-        model = CustomUser
+        model = User
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -82,7 +96,9 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
     def get_amount(self, obj):
-        return obj.amount.all().aggregate(amount=Sum('amount'))['amount']
+        return obj.amount_ingredients.all().aggregate(amount=Sum('amount'))[
+            'amount'
+        ]
 
 
 class RecipeFromFavoriteAndCartSerializer(serializers.ModelSerializer):
@@ -95,7 +111,7 @@ class RecipeFromFavoriteAndCartSerializer(serializers.ModelSerializer):
 class ReadRecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     ingredients = ReceptIngredientSerializer(many=True)
-    author = CustomUserSerializer()
+    author = UserSerializer()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -118,13 +134,13 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return obj.favorite.filter(user=user).exists()
+        return obj.favorites.filter(user=user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return obj.cart.filter(user=user).exists()
+        return obj.carts.filter(user=user).exists()
 
 
 class WriteIngredientSerializer(serializers.ModelSerializer):
@@ -137,7 +153,7 @@ class WriteIngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = CustomUserSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     ingredients = WriteIngredientSerializer(
         many=True,
     )
@@ -155,7 +171,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             'ingredients',
             'author',
         )
-        read_only_fields = ('id',)
 
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
@@ -231,27 +246,27 @@ class RecipeSerializer(serializers.ModelSerializer):
         ).data
 
 
-class SubscribeSerializer(CustomUserSerializer):
+class SubscribeSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField()
 
-    class Meta(CustomUserSerializer.Meta):
-        fields = CustomUserSerializer.Meta.fields + (
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + (
             'recipes',
             'recipes_count',
         )
-        read_only_fields = CustomUserSerializer.Meta.fields + (
+        read_only_fields = UserSerializer.Meta.fields + (
             'recipes',
             'recipes_count',
         )
 
     def get_recipes(self, obj):
         paginator = RecipesLimitPagination()
-        recipes = obj.recipe.all()
+        recipes = obj.recipes.all()
         paginator1 = paginator.paginate_queryset(
             recipes, self.context.get('request')
         )
         return RecipeFromFavoriteAndCartSerializer(paginator1, many=True).data
 
     def get_recipes_count(self, obj):
-        return obj.recipe.count()
+        return obj.recipes.count()

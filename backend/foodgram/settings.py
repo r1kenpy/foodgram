@@ -16,10 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if os.getenv('DEBUG', 'False') == 'True':
-    DEBUG = True
-else:
-    DEBUG = False
+DEBUG = True if os.getenv('DEBUG', 'False') == 'True' else False
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split()
 
@@ -37,9 +34,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'django_filters',
-    'api.apps.ApiConfig',
     'recipes.apps.RecipesConfig',
-    'users.apps.UsersConfig',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -136,14 +132,14 @@ STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media/'  # вернуть на /media/
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'recipes.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -157,17 +153,17 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': False,
     'SERIALIZERS': {
-        'user': 'api.serializers.CustomUserSerializer',
-        'user_list': 'api.serializers.CustomUserSerializer',
-        'current_user': 'api.serializers.CustomUserSerializer',
+        'user': 'api.serializers.UserSerializer',
+        'user_list': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
-        'user': ['users.permissions.ReadOrChangeUserPermission'],
-        'user_delete': ['djoser.permissions.IsAdminUser'],
+        'user': ['api.permissions.CurrentUserOrReadOnly'],
+        'user_delete': ['rest_framework.permissions.IsAdminUser'],
         'username_reset': ['rest_framework.permissions.IsAdminUser'],
         'username_reset_confirm': ['rest_framework.permissions.IsAdminUser'],
-        'set_username': ['djoser.permissions.IsAdminUser'],
+        'set_username': ['rest_framework.permissions.IsAdminUser'],
         'activation': ['rest_framework.permissions.IsAdminUser'],
         'password_reset': ['rest_framework.permissions.IsAdminUser'],
         'password_reset_confirm': ['rest_framework.permissions.IsAdminUser'],

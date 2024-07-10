@@ -1,8 +1,17 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.db.models import Sum
 
-from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
-                     ShoppingCart, Subscription, Tag)
+from .models import (
+    AmountReceptIngredients,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 
 @admin.register(Favorite)
@@ -50,6 +59,11 @@ class IngredientAdmin(admin.ModelAdmin):
         amount = obj.amount
         if amount.exists():
             return amount.aggregate(sum=Sum('amount')).get('sum')
+
+
+@admin.register(User)
+class UserAdmin(UserAdmin):
+    search_fields = ['username', 'email']
 
 
 admin.site.register(
