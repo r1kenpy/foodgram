@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -79,7 +80,9 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(Tag, verbose_name=_('Теги'))
     cooking_time = models.IntegerField(
-        validators=[MinValueValidator(limit_value=1)],
+        validators=[
+            MinValueValidator(limit_value=settings.MIN_VALUE_COOKING_TIME)
+        ],
         verbose_name=_('Время приготовления'),
     )
 
@@ -115,19 +118,30 @@ class AmountReceptIngredients(models.Model):
         return f'{self.ingredients.name[:20].title()}: {self.amount}'
 
 
-class Favorite(models.Model):
+class BaseModel(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_('Пользователь')
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_('Пользователь'),
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name=_('Рецепт'),
     )
 
     class Meta:
+        ordering = ('-recipe',)
+        abstract = True
+
+
+class Favorite(BaseModel):
+
+    class Meta(BaseModel.Meta):
         verbose_name = _('Избранное')
         verbose_name_plural = _('Избранное')
-        ordering = ('-recipe',)
         default_related_name = 'favorites'
+        abstract = False
 
     def __str__(self):
         return (
@@ -137,20 +151,19 @@ class Favorite(models.Model):
         )
 
 
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+class ShoppingCart(BaseModel):
 
-    class Meta:
+    class Meta(BaseModel.Meta):
         verbose_name = _('Корзина')
         verbose_name_plural = _('Корзина')
-        ordering = ('-recipe',)
         default_related_name = 'carts'
+        abstract = False
 
     def __str__(self):
         return (
-            f'{self.recipe.name[:20].title()} '
-            f'в избранно у {self.user.email[:20]}'
+            f'Рецепт '
+            f'"{self.recipe.name[:20].title()}" '
+            f'в корзине у {self.user.email[:20]}'
         )
 
 

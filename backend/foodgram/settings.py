@@ -169,3 +169,6 @@ DJOSER = {
         'password_reset_confirm': ['rest_framework.permissions.IsAdminUser'],
     },
 }
+
+
+MIN_VALUE_COOKING_TIME = 1
