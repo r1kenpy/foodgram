@@ -8,18 +8,26 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.baseconv import BASE64_ALPHABET, base64
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
 
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import LimitSizePagination
 from api.permissions import ReadOrIsAuthenticatedPermission
+from api.serializers import (
+    AvatarSerializer,
+    SubscribeSerializer,
+    UserSerializer,
+)
 from api.serializers import (
     IngredientSerializer,
     ReadRecipeSerializer,
@@ -28,6 +36,7 @@ from api.serializers import (
     TagSerializer,
 )
 from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from recipes.models import Subscription
 
 User = get_user_model()
 
@@ -187,27 +196,12 @@ class ShortLinkView(APIView):
         )
 
 
-from django.contrib.auth import get_user_model
-from djoser.views import UserViewSet
-from rest_framework import permissions, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
-from api.paginations import LimitSizePagination
-from api.serializers import (
-    AvatarSerializer,
-    SubscribeSerializer,
-)
-from recipes.models import Subscription
-
-User = get_user_model()
-
-
 class UserViewSet(UserViewSet):
     '''Эндпоинт юзера. Позволяющий получить информацию
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
     '''
 
+    serializer_class = UserSerializer
     pagination_class = LimitSizePagination
 
     @action(
@@ -227,7 +221,7 @@ class UserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         user = request.user
-        subs = User.objects.filter(subscription__user=user)
+        subs = User.objects.filter(author__user=user)
         page = self.paginate_queryset(subs)
         serializer = self.serializer_class(page, many=True)
         serializer.context['request'] = self.request
@@ -247,7 +241,7 @@ class UserViewSet(UserViewSet):
                 raise ValidationError(
                     {'errors': 'Нельзя подписаться на самого себя'}
                 )
-            if author.author.filter(user=user).exists():
+            if author.authors.filter(user=user).exists():
                 raise ValidationError(
                     {'errors': 'Вы уже подписаны на этого пользователя'}
                 )

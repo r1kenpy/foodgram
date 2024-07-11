@@ -22,5 +22,3 @@ urlpatterns = [
     path('', include('recipes.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]
-
-print(router_v1.urls)

@@ -1,4 +1,5 @@
 import base64
+import re
 
 from django.core.files.base import ContentFile
 from django.db.models import Sum
@@ -20,9 +21,28 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
+def gat_validate_username(
+    self, data
+):  # Что-то не то, не работает. нужно ппосотерть скольок длина по дефолту.
+    username = data.get('username')
+    if username == 'me':
+        raise serializers.ValidationError(
+            {'errors': 'Укажите другой username'}
+        )
+
+    if not re.match(r'^[\w.@+-]+\z$', username):
+        raise serializers.ValidationError(
+            {'errors': 'Искользованы недопустипые симполы'}
+        )
+    return data
+
+
 class UserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     avatar = Base64ImageField(read_only=True)
+    username = serializers.CharField(
+        max_length=150, validators=[gat_validate_username]
+    )
 
     class Meta:
         model = User
@@ -40,27 +60,12 @@ class UserSerializer(UserSerializer):
             'is_subscribed',
         )
 
-    # def validate_username(
-    #     self, data
-    # ):  # Что-то не то, не работает. нужно ппосотерть скольок длина по дефолту.
-    #     username = data.get('username')
-    #     if username == 'me':
-    #         raise serializers.ValidationError(
-    #             {'errors': 'Укажите другой username'}
-    #         )
-    #
-    #     if not re.match(r'^[\w.@+-]+\z$', username):
-    #         raise serializers.ValidationError(
-    #             {'errors': 'Искользованы недопустипые симполы'}
-    #         )
-    #     return data
-
     def get_is_subscribed(self, obj):
 
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return obj.subscription.filter(user=user).exists()
+        return obj.authors.filter(user=user).exists()
 
 
 class AvatarSerializer(serializers.ModelSerializer):

@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .validators import validate_username
+
 
 class User(AbstractUser):
     avatar = models.ImageField(
@@ -14,7 +16,10 @@ class User(AbstractUser):
     first_name = models.CharField(_('Имя'), max_length=150)
     last_name = models.CharField(_('Фамилия'), max_length=150)
     username = models.CharField(
-        unique=True, max_length=150, verbose_name=_('Псевдоним пользователя')
+        unique=True,
+        max_length=150,
+        verbose_name=_('Псевдоним пользователя'),
+        validators=[validate_username],
     )
 
     USERNAME_FIELD = 'email'
