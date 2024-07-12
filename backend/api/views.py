@@ -2,11 +2,11 @@ import io
 
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
-from django.http import FileResponse, HttpResponseRedirect
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.baseconv import BASE64_ALPHABET, base64
+from django.utils.baseconv import base64
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from reportlab.lib.pagesizes import letter
@@ -18,11 +18,10 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from rest_framework.views import APIView
 
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import LimitSizePagination
-from api.permissions import ReadOrIsAuthenticatedPermission
+from api.permissions import ReadOrAuthorChangeRecipt
 from api.serializers import (
     AvatarSerializer,
     SubscribeSerializer,
@@ -39,6 +38,21 @@ from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from recipes.models import Subscription
 
 User = get_user_model()
+
+
+def add_favorite_or_cart(self, request, model, where_add='', pk=None):
+    recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
+    if self.request.method == 'POST':
+        _, availability = model.objects.get_or_create(
+            recipe=recipe, user=self.request.user
+        )
+        if not availability:
+            raise ValidationError({'errors': f'{where_add}'})
+        serializer = RecipeFromFavoriteAndCartSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    get_object_or_404(model, user=self.request.user, recipe=recipe).delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -68,7 +82,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
 
-    permission_classes = (ReadOrIsAuthenticatedPermission,)
+    permission_classes = (ReadOrAuthorChangeRecipt,)
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -92,29 +106,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавление или удаление рецепта из избранного."""
-        recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-        if self.request.method == 'POST':
-            if recipe.favorites.filter(
-                user=self.request.user, recipe=recipe
-            ).exists():
-                return Response(
-                    {'errors': 'Рецепт уже в избранном!'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            Favorite.objects.create(recipe=recipe, user=self.request.user)
-            serializer = RecipeFromFavoriteAndCartSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        if not recipe.favorites.filter(
-            user=self.request.user, recipe=recipe
-        ).exists():
-            return Response(
-                {'errors': 'Рецепта нет в избранном!'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        recipe.favorites.filter(user=request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return add_favorite_or_cart(
+            self,
+            request,
+            model=Favorite,
+            where_add='Рецепт уже в избранном!',
+            pk=pk,
+        )
 
     @action(
         methods=('POST', 'DELETE'),
@@ -123,23 +121,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавление или удаление рецепта из корзины."""
-        recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-        if self.request.method == 'POST':
-            if recipe.carts.filter(user=self.request.user).exists():
-                return Response(
-                    'Рецепт уже есть в корзине!',
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            ShoppingCart.objects.create(recipe=recipe, user=self.request.user)
-            serializer = RecipeFromFavoriteAndCartSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if not recipe.carts.filter(user=self.request.user).exists():
-            return Response(
-                {'errors': 'Рецепта нет в корзине!'},
-                status.HTTP_400_BAD_REQUEST,
-            )
-        recipe.carts.filter(user=self.request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return add_favorite_or_cart(
+            self,
+            request,
+            where_add='Рецепт уже есть в корзине!',
+            model=ShoppingCart,
+            pk=pk,
+        )
 
     @action(
         methods=('GET',),
@@ -158,7 +146,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
         text.setFont('DejaVuSans', 14)
         if shopping_cart:
-            text.textLine('Shopping list:')
+            text.textLine('Список покупок:')
             for shopping_cart_item in shopping_cart:
                 ingredients = [
                     (
@@ -171,7 +159,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 ]
                 text.textLines(ingredients)
         else:
-            text.textLine('Shopping list is empty!')
+            text.textLine('Список покупок пуст!')
         c.drawText(text)
         c.showPage()
         c.save()
@@ -180,19 +168,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return FileResponse(
             buf,
             filename=f'shopping_list_{timezone.now().date()}.pdf',
-        )
-
-
-class ShortLinkView(APIView):
-    """Декодирование короткой ссылки."""
-
-    def get(self, request, encode_id=None):
-        if not set(encode_id).issubset(set(BASE64_ALPHABET)):
-            return Response({'errors': 'Запрещенный символ в ссылке.'})
-        decode_id = base64.decode(encode_id)
-        recipe = get_object_or_404(Recipe, pk=decode_id)
-        return HttpResponseRedirect(
-            request.build_absolute_uri(f'/recipes/{recipe.id}/')
         )
 
 
@@ -221,7 +196,7 @@ class UserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         user = request.user
-        subs = User.objects.filter(author__user=user)
+        subs = User.objects.filter(authors__user=user)
         page = self.paginate_queryset(subs)
         serializer = self.serializer_class(page, many=True)
         serializer.context['request'] = self.request
@@ -254,10 +229,6 @@ class UserViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         get_object_or_404(Subscription, author=author, user=user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-        # return Response(
-        #     {'errors': 'Вы не подписаны на данного пользователя!'},
-        #     status=status.HTTP_400_BAD_REQUEST,
-        # )
 
     @action(
         detail=False,

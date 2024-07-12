@@ -41,14 +41,14 @@ class RecipesFilter(django_filters.FilterSet):
             'is_in_shopping_cart',
         )
 
-    def filter_is_favorited(self, queryset, name, value):
+    def filter_is_favorited(self, favorites, name, value):
         user = self.request.user
         if value and user.is_authenticated:
-            return queryset.filter(favorite__user=user)
-        return queryset
+            return favorites.filter(favorites__user=user)
+        return favorites
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
         if value and user.is_authenticated:
-            return queryset.filter(cart__user=user)
+            return queryset.filter(carts__user=user)
         return queryset

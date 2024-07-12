@@ -94,9 +94,48 @@ class IngredientAdmin(admin.ModelAdmin):
             return amount.aggregate(sum=Sum('amount')).get('sum')
 
 
+class CountRecipesFilter(admin.SimpleListFilter):
+    title = 'Наличие рецептов'
+    parameter_name = 'count_recipes'
+
+    def lookups(self, request, model_admin):
+        return [(1, 'Есть рецепты'), (0, 'Нет рецептов')]
+
+    def queryset(self, request, queryset):  #
+        print('Доделать')
+        if self.value() == '1':
+            return queryset.filter(recipes=True)
+        elif self.value() == '0':
+            return queryset.filter(recipes=False)
+
+
 @admin.register(User)
 class UserAdmin(UserAdmin):
     search_fields = ['username', 'email']
+
+    list_display = UserAdmin.list_display + (
+        'count_recipes',
+        'count_subscribers',
+        'count_author',
+    )
+    list_filter = UserAdmin.list_filter + (
+        CountRecipesFilter,
+        # ('count_subscribers', admin.BooleanFieldListFilter),
+        # ('count_author', admin.BooleanFieldListFilter),
+    )
+
+    # list_filter = UserAdmin.list_filter +
+    @display(description='Количество рецептов')
+    def count_recipes(self, user):
+        return user.recipes.count()
+
+    @display(description='Количество подписок')
+    def count_subscribers(self, user):
+        return user.subscribers.count()
+
+    @display(description='Количество подписчиков')
+    def count_author(self, user):
+        return user.authors.count()
 
 
 admin.site.register(

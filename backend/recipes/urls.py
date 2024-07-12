@@ -1,6 +1,6 @@
 from django.urls import path
 
-from api.views import ShortLinkView
+from recipes.views import ShortLinkView
 
 app_name = 'recipes'
 

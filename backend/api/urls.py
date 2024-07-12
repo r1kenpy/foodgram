@@ -8,17 +8,16 @@ if settings.DEBUG:
 else:
     from rest_framework.routers import SimpleRouter as Router
 
-router_v1 = Router()
+router = Router()
 
-router_v1.register(r'tags', TagViewSet, basename='tags')
-router_v1.register(r'ingredients', IngredientVeiwSet, basename='ingredients')
-router_v1.register(r'recipes', RecipeViewSet, basename='recipes')
-router_v1.register(r'users', UserViewSet, basename='users')
+router.register(r'tags', TagViewSet, basename='tags')
+router.register(r'ingredients', IngredientVeiwSet, basename='ingredients')
+router.register(r'recipes', RecipeViewSet, basename='recipes')
+router.register(r'users', UserViewSet, basename='users')
 
 
 urlpatterns = [
-    path('', include(router_v1.urls)),
-    path('', include('djoser.urls')),
+    path('', include(router.urls)),
     path('', include('recipes.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]
