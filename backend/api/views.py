@@ -1,38 +1,33 @@
-import io
-
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
-from django.utils.baseconv import base64
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
 from rest_framework import permissions, status
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from api.filters import IngredientFilter, RecipesFilter
+from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
 from api.serializers import (
     AvatarSerializer,
     SubscribeSerializer,
     UserSerializer,
+    ShortRecipeSerializer,
 )
 from api.serializers import (
     IngredientSerializer,
     ReadRecipeSerializer,
-    RecipeSummarySerializer,
     RecipeSerializer,
     TagSerializer,
 )
+from api.utils import create_pdf_shopping_list
 from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from recipes.models import Subscription
 
@@ -47,7 +42,7 @@ def add_favorite_or_cart(self, request, model, where_add='', pk=None):
         )
         if not availability:
             raise ValidationError({'errors': f'{where_add}'})
-        serializer = RecipeSummarySerializer(recipe)
+        serializer = ShortRecipeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     get_object_or_404(model, user=self.request.user, recipe=recipe).delete()
@@ -59,6 +54,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
@@ -69,6 +65,7 @@ class IngredientVeiwSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     filterset_class = IngredientFilter
     search_fields = ('^name',)
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -79,8 +76,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
-
-    permission_classes = (ReadOrAuthorChangeRecipt,)
+    permission_classes = (
+        IsAuthenticatedOrReadOnly,
+        ReadOrAuthorChangeRecipt,
+    )
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -91,9 +90,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def getlink(self, request, pk=None):
         """Создание короткой ссылки."""
         recipe = self.get_object()
-        base = base64.encode(recipe.id)
+        id = str(recipe.id)
         url = request.build_absolute_uri(
-            reverse('recipes:shortlink', args=(base,))
+            reverse('recipes:shortlink', args=(id,))
         )
         return Response({'short-link': url}, status=status.HTTP_200_OK)
 
@@ -137,35 +136,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
         shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
             user=request.user
         )
-        buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
-        text = c.beginText()
-        text.setTextOrigin(20, 20)
-        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
-        text.setFont('DejaVuSans', 14)
+        ingredients = []
+        recipe_in_shopping_cart = []
+        numbering = 1
         if shopping_cart:
-            text.textLine('Список покупок:')
             for shopping_cart_item in shopping_cart:
-                ingredients = [
-                    (
-                        f'{ingred.name}({ingred.measurement_unit}): '
-                        f'{ingred.amount.aggregate(sum=Sum("amount"))["sum"]}'
+                recipe_in_shopping_cart.append(
+                    f'"{shopping_cart_item.recipe.name}"'
+                )
+                for ingred in set(shopping_cart_item.recipe.ingredients.all()):
+                    ingredients.append(
+                        (
+                            f'{numbering}. {str(ingred.name).capitalize()}('
+                            f'{ingred.measurement_unit}): '
+                            f'{ingred.amount_ingredients.aggregate(sum=Sum("amount"))["sum"]}'
+                        )
                     )
-                    for ingred in set(
-                        shopping_cart_item.recipe.ingredients.all()
-                    )
-                ]
-                text.textLines(ingredients)
-        else:
-            text.textLine('Список покупок пуст!')
-        c.drawText(text)
-        c.showPage()
-        c.save()
-        buf.seek(0)
-
+                    numbering += 1
+        buf = create_pdf_shopping_list(ingredients, recipe_in_shopping_cart)
         return FileResponse(
             buf,
-            filename=f'shopping_list_{timezone.now().date()}.pdf',
+            filename=f'shopping_list.pdf',
         )
 
 
@@ -192,12 +183,13 @@ class UserViewSet(UserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
-        user = request.user
-        subs = User.objects.filter(authors__user=user)
-        page = self.paginate_queryset(subs)
+        paginator = RecipesLimitPagination()
+        page = paginator.paginate_queryset(
+            User.objects.filter(authors__user=request.user), request
+        )
         serializer = self.serializer_class(page, many=True)
         serializer.context['request'] = self.request
-        return self.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(
         detail=True,

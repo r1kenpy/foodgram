@@ -6,7 +6,6 @@ from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
-from api.paginations import RecipesLimitPagination
 from recipes.models import AmountReceptIngredients, Ingredient, Recipe, Tag
 from recipes.models import User
 
@@ -89,8 +88,7 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         ]
 
 
-class RecipeSummarySerializer(serializers.ModelSerializer):
-    # RecipeSummarySerializer
+class ShortRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -230,8 +228,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class SubscribeSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField(read_only=True)
-    recipes_count = serializers.SerializerMethodField()
+    recipes = ShortRecipeSerializer(many=True, read_only=True)
+    recipes_count = serializers.IntegerField(
+        source='recipes.count', read_only=True
+    )
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + (
@@ -242,14 +242,3 @@ class SubscribeSerializer(UserSerializer):
             'recipes',
             'recipes_count',
         )
-
-    def get_recipes(self, obj):
-        paginator = RecipesLimitPagination()
-        recipes = obj.recipes.all()
-        paginator1 = paginator.paginate_queryset(
-            recipes, self.context.get('request')
-        )
-        return RecipeSummarySerializer(paginator1, many=True).data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
