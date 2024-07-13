@@ -20,7 +20,6 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from api.filters import IngredientFilter, RecipesFilter
-from api.paginations import LimitSizePagination
 from api.permissions import ReadOrAuthorChangeRecipt
 from api.serializers import (
     AvatarSerializer,
@@ -30,7 +29,7 @@ from api.serializers import (
 from api.serializers import (
     IngredientSerializer,
     ReadRecipeSerializer,
-    RecipeFromFavoriteAndCartSerializer,
+    RecipeSummarySerializer,
     RecipeSerializer,
     TagSerializer,
 )
@@ -48,7 +47,7 @@ def add_favorite_or_cart(self, request, model, where_add='', pk=None):
         )
         if not availability:
             raise ValidationError({'errors': f'{where_add}'})
-        serializer = RecipeFromFavoriteAndCartSerializer(recipe)
+        serializer = RecipeSummarySerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     get_object_or_404(model, user=self.request.user, recipe=recipe).delete()
@@ -78,7 +77,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Recipe.objects.all()
-    pagination_class = LimitSizePagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
 
@@ -177,7 +175,6 @@ class UserViewSet(UserViewSet):
     '''
 
     serializer_class = UserSerializer
-    pagination_class = LimitSizePagination
 
     @action(
         ('get',),

@@ -1,5 +1,4 @@
 import base64
-import re
 
 from django.core.files.base import ContentFile
 from django.db.models import Sum
@@ -32,28 +31,10 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-def gat_validate_username(
-    self, data
-):  # Что-то не то, не работает. нужно ппосотерть скольок длина по дефолту.
-    username = data.get('username')
-    if username == 'me':
-        raise serializers.ValidationError(
-            {'errors': 'Укажите другой username'}
-        )
-
-    if not re.match(r'^[\w.@+-]+\z$', username):
-        raise serializers.ValidationError(
-            {'errors': 'Искользованы недопустипые симполы'}
-        )
-    return data
-
-
 class UserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     avatar = Base64ImageField(read_only=True)
-    username = serializers.CharField(
-        max_length=150, validators=[gat_validate_username]
-    )
+    username = serializers.CharField(max_length=150)
 
     class Meta:
         model = User
@@ -108,8 +89,8 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         ]
 
 
-class RecipeFromFavoriteAndCartSerializer(serializers.ModelSerializer):
-
+class RecipeSummarySerializer(serializers.ModelSerializer):
+    # RecipeSummarySerializer
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -268,7 +249,7 @@ class SubscribeSerializer(UserSerializer):
         paginator1 = paginator.paginate_queryset(
             recipes, self.context.get('request')
         )
-        return RecipeFromFavoriteAndCartSerializer(paginator1, many=True).data
+        return RecipeSummarySerializer(paginator1, many=True).data
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
