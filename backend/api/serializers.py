@@ -72,9 +72,7 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
     def get_amount(self, obj):
-        return obj.amount_ingredients.all().aggregate(amount=Sum('amount'))[
-            'amount'
-        ]
+        return obj.amo.all().aggregate(amount=Sum('amount'))['amount']
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):

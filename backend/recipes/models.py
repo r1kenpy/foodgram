@@ -115,7 +115,7 @@ class AmountReceptIngredients(models.Model):
         verbose_name = _('Мера')
         verbose_name_plural = _('Мера')
         ordering = ('-amount',)
-        default_related_name = 'amount_ingredients'
+        default_related_name = 'amo'
 
     def __str__(self):
         return f'{self.ingredients.name[:20].title()}: {self.amount}'

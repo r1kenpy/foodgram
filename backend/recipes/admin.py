@@ -81,7 +81,7 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
     def amount(self, obj):
-        amount = obj.amount_ingredients
+        amount = obj.amo
         if amount.exists():
             return amount.aggregate(sum=Sum('amount')).get('sum')
 

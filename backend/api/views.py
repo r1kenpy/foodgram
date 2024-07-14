@@ -13,25 +13,13 @@ from rest_framework.response import Response
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (
-    AvatarSerializer,
-    IngredientSerializer,
-    ReadRecipeSerializer,
-    RecipeSerializer,
-    ShortRecipeSerializer,
-    SubscribeSerializer,
-    TagSerializer,
-    UserSerializer,
-)
+from api.serializers import (AvatarSerializer, IngredientSerializer,
+                             ReadRecipeSerializer, RecipeSerializer,
+                             ShortRecipeSerializer, SubscribeSerializer,
+                             TagSerializer, UserSerializer)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
+from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
+                            Subscription, Tag)
 
 User = get_user_model()
 
@@ -140,12 +128,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 recipe_in_shopping_cart.append(
                     f'"{shopping_cart_item.recipe.name}"'
                 )
-                for ingred in set(shopping_cart_item.recipe.ingredients.all()):
+                for ing in set(shopping_cart_item.recipe.ingredients.all()):
                     ingredients.append(
                         (
-                            f'{numbering}. {str(ingred.name).capitalize()}('
-                            f'{ingred.measurement_unit}): '
-                            f'{ingred.amount_ingredients.aggregate(sum=Sum("amount"))["sum"]}'
+                            f'{numbering}. {str(ing.name).capitalize()}('
+                            f'{ing.measurement_unit}): '
+                            f'{ing.amo.aggregate(sum=Sum("amount"))["sum"]}'
                         )
                     )
                     numbering += 1
