@@ -5,8 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import permissions, status
-from rest_framework import viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -16,19 +15,23 @@ from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
 from api.serializers import (
     AvatarSerializer,
-    SubscribeSerializer,
-    UserSerializer,
-    ShortRecipeSerializer,
-)
-from api.serializers import (
     IngredientSerializer,
     ReadRecipeSerializer,
     RecipeSerializer,
+    ShortRecipeSerializer,
+    SubscribeSerializer,
     TagSerializer,
+    UserSerializer,
 )
 from api.utils import create_pdf_shopping_list
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
-from recipes.models import Subscription
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 User = get_user_model()
 
@@ -149,7 +152,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         buf = create_pdf_shopping_list(ingredients, recipe_in_shopping_cart)
         return FileResponse(
             buf,
-            filename=f'shopping_list.pdf',
+            filename='shopping_list.pdf',
         )
 
 

@@ -4,16 +4,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .models import (
-    AmountReceptIngredients,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-    User,
-)
+from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
+                     ShoppingCart, Subscription, Tag, User)
 
 
 @admin.register(Favorite)
@@ -101,12 +93,39 @@ class CountRecipesFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         return [(1, 'Есть рецепты'), (0, 'Нет рецептов')]
 
-    def queryset(self, request, queryset):  #
-        print('Доделать')
+    def queryset(self, request, queryset):
         if self.value() == '1':
-            return queryset.filter(recipes=True)
+            return queryset.exclude(recipes=None)
         elif self.value() == '0':
-            return queryset.filter(recipes=False)
+            return queryset.filter(recipes=None)
+
+
+class CountSubscribersFilter(admin.SimpleListFilter):
+    title = 'Наличие подписок'
+    parameter_name = 'count_sub'
+
+    def lookups(self, request, model_admin):
+        return [(1, 'Есть подписки'), (0, 'Нет подписок')]
+
+    def queryset(self, request, queryset):
+        if self.value() == '1':
+            return queryset.exclude(subscribers=None)
+        elif self.value() == '0':
+            return queryset.filter(subscribers=None)
+
+
+class CountAuthorFilter(admin.SimpleListFilter):
+    title = 'Наличие подписчиков'
+    parameter_name = 'count_author'
+
+    def lookups(self, request, model_admin):
+        return [(1, 'Есть подписчики'), (0, 'Нет подписчики')]
+
+    def queryset(self, request, queryset):
+        if self.value() == '1':
+            return queryset.exclude(authors=None)
+        elif self.value() == '0':
+            return queryset.filter(authors=None)
 
 
 @admin.register(User)
@@ -120,11 +139,10 @@ class UserAdmin(UserAdmin):
     )
     list_filter = UserAdmin.list_filter + (
         CountRecipesFilter,
-        # ('count_subscribers', admin.BooleanFieldListFilter),
-        # ('count_author', admin.BooleanFieldListFilter),
+        CountSubscribersFilter,
+        CountAuthorFilter,
     )
 
-    # list_filter = UserAdmin.list_filter +
     @display(description='Количество рецептов')
     def count_recipes(self, user):
         return user.recipes.count()

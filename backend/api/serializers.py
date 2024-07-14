@@ -4,8 +4,8 @@ from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from recipes.models import AmountReceptIngredients, Ingredient, Recipe, Tag
-from recipes.models import User
+from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
+                            User)
 
 
 def check_duplicates(ids: list, msg='errors'):
