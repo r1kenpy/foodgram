@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from rest_framework.exceptions import ValidationError
 
 from .validators import validate_username
 
@@ -134,6 +135,10 @@ class BaseModel(models.Model):
         ordering = ('-recipe',)
         abstract = True
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
 
 class Favorite(BaseModel):
 
@@ -150,6 +155,10 @@ class Favorite(BaseModel):
             f'в избранном у {self.user.email[:20]}'
         )
 
+    def clean(self):
+        if self.recipe.favorites.filter(user=self.user).exists():
+            raise ValidationError({'errors': 'Рецепт уже в избранном!'})
+
 
 class ShoppingCart(BaseModel):
 
@@ -165,6 +174,10 @@ class ShoppingCart(BaseModel):
             f'"{self.recipe.name[:20].title()}" '
             f'в корзине у {self.user.email[:20]}'
         )
+
+    def clean(self):
+        if self.recipe.carts.filter(user=self.user).exists():
+            raise ValidationError({'errors': 'Рецепт уже есть в корзине!'})
 
 
 class Subscription(models.Model):
@@ -188,3 +201,17 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f'{self.user.email[:20]} подписан на {self.author.email[:20]}'
+
+    def clean(self):
+        if self.author == self.user:
+            raise ValidationError(
+                {'errors': 'Нельзя подписаться на самого себя'}
+            )
+        if self.author.authors.filter(user=self.user).exists():
+            raise ValidationError(
+                {'errors': 'Вы уже подписаны на этого пользователя'}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

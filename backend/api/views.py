@@ -10,7 +10,6 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
 
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
@@ -34,14 +33,10 @@ from recipes.models import Subscription
 User = get_user_model()
 
 
-def add_favorite_or_cart(self, request, model, where_add='', pk=None):
+def add_favorite_or_cart(self, request, model, pk=None):
     recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
     if self.request.method == 'POST':
-        _, availability = model.objects.get_or_create(
-            recipe=recipe, user=self.request.user
-        )
-        if not availability:
-            raise ValidationError({'errors': f'{where_add}'})
+        model.objects.create(user=request.user, recipe=recipe)
         serializer = ShortRecipeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -107,7 +102,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             self,
             request,
             model=Favorite,
-            where_add='Рецепт уже в избранном!',
             pk=pk,
         )
 
@@ -121,7 +115,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return add_favorite_or_cart(
             self,
             request,
-            where_add='Рецепт уже есть в корзине!',
             model=ShoppingCart,
             pk=pk,
         )
@@ -201,14 +194,6 @@ class UserViewSet(UserViewSet):
         user = request.user
         author = self.get_object()
         if request.method == 'POST':
-            if author == user:
-                raise ValidationError(
-                    {'errors': 'Нельзя подписаться на самого себя'}
-                )
-            if author.authors.filter(user=user).exists():
-                raise ValidationError(
-                    {'errors': 'Вы уже подписаны на этого пользователя'}
-                )
             Subscription.objects.create(
                 user=user,
                 author=author,
