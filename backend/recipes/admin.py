@@ -1,11 +1,20 @@
 from django.contrib import admin
 from django.contrib.admin.decorators import display
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
-                     ShoppingCart, Subscription, Tag, User)
+from .models import (
+    AmountReceptIngredients,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 
 @admin.register(Favorite)
@@ -27,8 +36,8 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug', 'number_of_recipes')
     search_fields = ('name', 'slug')
 
-    def number_of_recipes(self, obj):
-        return obj.recipes.count()
+    def number_of_recipes(self, tag):
+        return tag.recipes.count()
 
 
 class RecipeInline(admin.StackedInline):
@@ -48,7 +57,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'get_tags',
         'get_html_image',
     )
-    list_filter = ('tags',)
+    list_filter = ('tags', 'author')
     search_fields = (
         'name',
         'author__first_name',
@@ -68,22 +77,53 @@ class RecipeAdmin(admin.ModelAdmin):
         return list(recipe.tags.all())
 
     @display(description='Продукты')
+    @mark_safe
     def get_ingredients(self, recipe):
-        return list(recipe.ingredients.all())
+        return ''.join(
+            [
+                f'<li>{i.name.title()}</li>'
+                for i in recipe.ingredients.all()
+                if i is not None
+            ]
+        )
 
     def favorites(self, recipe):
         return recipe.favorites.count()
 
 
+class IngredientInRecipesFilter(admin.SimpleListFilter):
+    title = 'Используются в рецептах'
+    parameter_name = 'ingredient_in_recipes'
+
+    def lookups(self, request, model_admin):
+        return [(1, 'В рецептах'), (0, 'Нет в рецептах')]
+
+    def queryset(self, request, queryset):
+        if self.value() == '1':
+            return queryset.exclude(recipes=None)
+        elif self.value() == '0':
+            return queryset.filter(recipes=None)
+
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'amount')
-    search_fields = ('name',)
+    list_display = (
+        'name',
+        'amount',
+        'measurement_unit',
+        'recipe',
+    )
+    search_fields = ('name', 'measurement_unit')
+    list_filter = (IngredientInRecipesFilter,)
 
-    def amount(self, obj):
-        amount = obj.amo
-        if amount.exists():
-            return amount.aggregate(sum=Sum('amount')).get('sum')
+    @display(description='Количество')
+    def amount(self, ingredient):
+        return ingredient.amount_ingredients.aggregate(sum=Sum('amount')).get(
+            'sum'
+        )
+
+    def recipe(self, ingredient):
+        return ingredient.recipes.count()
 
 
 class CountRecipesFilter(admin.SimpleListFilter):
@@ -132,12 +172,14 @@ class CountAuthorFilter(admin.SimpleListFilter):
 class UserAdmin(UserAdmin):
     search_fields = ['username', 'email']
 
-    list_display = UserAdmin.list_display + (
+    list_display = (
+        *UserAdmin.list_display,
         'count_recipes',
         'count_subscribers',
         'count_author',
     )
-    list_filter = UserAdmin.list_filter + (
+    list_filter = (
+        *UserAdmin.list_filter,
         CountRecipesFilter,
         CountSubscribersFilter,
         CountAuthorFilter,
@@ -162,3 +204,6 @@ admin.site.register(
         Subscription,
     )
 )
+
+
+admin.site.unregister(Group)

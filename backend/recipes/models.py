@@ -25,7 +25,7 @@ class User(AbstractUser):
     )
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     class Meta:
         verbose_name = _('Пользователь')
@@ -46,7 +46,7 @@ class Tag(models.Model):
         default_related_name = 'tags'
 
     def __str__(self):
-        return self.name[:20].title()
+        return self.name[:20]
 
 
 class Ingredient(models.Model):
@@ -86,7 +86,7 @@ class Recipe(models.Model):
         validators=[
             MinValueValidator(limit_value=settings.MIN_VALUE_COOKING_TIME)
         ],
-        verbose_name=_('Время приготовления'),
+        verbose_name=_('Время приготовления в минутах'),
     )
 
     class Meta:
@@ -101,27 +101,27 @@ class Recipe(models.Model):
 
 class AmountReceptIngredients(models.Model):
     amount = models.PositiveIntegerField(
-        validators=[MinValueValidator(limit_value=1)],
+        validators=[MinValueValidator(limit_value=settings.MIN_VALUE_AMOUNT)],
         verbose_name='Мера',
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
     )
-    ingredients = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, verbose_name=_('Продукт')
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE, verbose_name=_('Ингредиент')
     )
 
     class Meta:
         verbose_name = _('Мера')
         verbose_name_plural = _('Мера')
         ordering = ('-amount',)
-        default_related_name = 'amo'
+        default_related_name = 'amount_ingredients'
 
     def __str__(self):
-        return f'{self.ingredients.name[:20].title()}: {self.amount}'
+        return f'{self.recipe.name[:20]}: {self.ingredient[:20]}'
 
 
-class BaseModel(models.Model):
+class FavoriteAndCartBaseModel(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -142,9 +142,9 @@ class BaseModel(models.Model):
         return super().save(*args, **kwargs)
 
 
-class Favorite(BaseModel):
+class Favorite(FavoriteAndCartBaseModel):
 
-    class Meta(BaseModel.Meta):
+    class Meta(FavoriteAndCartBaseModel.Meta):
         verbose_name = _('Избранное')
         verbose_name_plural = _('Избранное')
         default_related_name = 'favorites'
@@ -162,9 +162,9 @@ class Favorite(BaseModel):
             raise ValidationError({'errors': 'Рецепт уже в избранном!'})
 
 
-class ShoppingCart(BaseModel):
+class ShoppingCart(FavoriteAndCartBaseModel):
 
-    class Meta(BaseModel.Meta):
+    class Meta(FavoriteAndCartBaseModel.Meta):
         verbose_name = _('Корзина')
         verbose_name_plural = _('Корзина')
         default_related_name = 'carts'

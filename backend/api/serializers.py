@@ -6,8 +6,13 @@ from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
-from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
-                            User)
+from recipes.models import (
+    AmountReceptIngredients,
+    Ingredient,
+    Recipe,
+    Tag,
+    User,
+)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -83,7 +88,9 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
     def get_amount(self, obj):
-        return obj.amo.all().aggregate(amount=Sum('amount'))['amount']
+        return obj.amount_ingredients.all().aggregate(amount=Sum('amount'))[
+            'amount'
+        ]
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
@@ -220,9 +227,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return super().update(recipe, validated_data)
 
     def to_representation(self, recipe):
-        return ReadRecipeSerializer(
-            recipe, context={'request': self.context['request']}
-        ).data
+        return ReadRecipeSerializer(recipe, context=self.context).data
 
 
 class SubscribeSerializer(UserSerializer):
@@ -232,11 +237,13 @@ class SubscribeSerializer(UserSerializer):
     )
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + (
+        fields = (
+            *UserSerializer.Meta.fields,
             'recipes',
             'recipes_count',
         )
-        read_only_fields = UserSerializer.Meta.fields + (
+        read_only_fields = (
+            *UserSerializer.Meta.fields,
             'recipes',
             'recipes_count',
         )

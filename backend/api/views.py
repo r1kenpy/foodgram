@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -13,26 +13,27 @@ from rest_framework.response import Response
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (AvatarSerializer, IngredientSerializer,
-                             ReadRecipeSerializer, RecipeSerializer,
-                             ShortRecipeSerializer, SubscribeSerializer,
-                             TagSerializer, UserSerializer)
+from api.serializers import (
+    AvatarSerializer,
+    IngredientSerializer,
+    ReadRecipeSerializer,
+    RecipeSerializer,
+    ShortRecipeSerializer,
+    SubscribeSerializer,
+    TagSerializer,
+    UserSerializer,
+)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
-                            Subscription, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 User = get_user_model()
-
-
-def add_favorite_or_cart(self, request, model, pk=None):
-    recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-    if self.request.method == 'POST':
-        model.objects.create(user=request.user, recipe=recipe)
-        serializer = ShortRecipeSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    get_object_or_404(model, user=self.request.user, recipe=recipe).delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -67,6 +68,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ReadOrAuthorChangeRecipt,
     )
 
+    def add_favorite_or_cart(self, request, model, pk=None):
+        recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
+        if self.request.method == 'POST':
+            _, is_created = model.objects.get_or_create(
+                user=request.user, recipe=recipe
+            )
+            if not is_created:
+                raise serializers.ValidationError('Запись уже существует.')
+            return Response(
+                ShortRecipeSerializer(recipe).data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        get_object_or_404(
+            model, user=self.request.user, recipe=recipe
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return ReadRecipeSerializer
@@ -76,9 +95,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def getlink(self, request, pk=None):
         """Создание короткой ссылки."""
         recipe = self.get_object()
-        id = str(recipe.id)
         url = request.build_absolute_uri(
-            reverse('recipes:shortlink', args=(id,))
+            reverse('recipes:shortlink', args=(str(recipe.id),))
         )
         return Response({'short-link': url}, status=status.HTTP_200_OK)
 
@@ -89,8 +107,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавление или удаление рецепта из избранного."""
-        return add_favorite_or_cart(
-            self,
+        return self.add_favorite_or_cart(
             request,
             model=Favorite,
             pk=pk,
@@ -103,8 +120,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавление или удаление рецепта из корзины."""
-        return add_favorite_or_cart(
-            self,
+        return self.add_favorite_or_cart(
             request,
             model=ShoppingCart,
             pk=pk,
@@ -133,7 +149,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                         (
                             f'{numbering}. {str(ing.name).capitalize()}('
                             f'{ing.measurement_unit}): '
-                            f'{ing.amo.aggregate(sum=Sum("amount"))["sum"]}'
+                            f'{ing.amount_ingredients.aggregate(sum=Sum("amount"))["sum"]}'
                         )
                     )
                     numbering += 1
@@ -152,13 +168,12 @@ class UserViewSet(UserViewSet):
     serializer_class = UserSerializer
 
     @action(
-        ('get',),
+        ('GET',),
         detail=False,
         permission_classes=(permissions.IsAuthenticated,),
     )
     def me(self, request, *args, **kwargs):
-        self.get_object = self.get_instance
-        return self.retrieve(request, *args, **kwargs)
+        return super().me(request, *args, **kwargs)
 
     @action(
         detail=False,
@@ -185,10 +200,14 @@ class UserViewSet(UserViewSet):
         user = request.user
         author = self.get_object()
         if request.method == 'POST':
-            Subscription.objects.create(
+            _, is_created = Subscription.objects.get_or_create(
                 user=user,
                 author=author,
             )
+            if not is_created:
+                raise serializers.ValidationError(
+                    {'errors': 'Запись уже существует.'}
+                )
             serializer = self.serializer_class(author)
             serializer.context['request'] = self.request
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -210,11 +229,11 @@ class UserViewSet(UserViewSet):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            raise serializers.ValidationError(
+                {'avatar': f'{serializer.errors}'}
             )
 
         if request.method == 'DELETE' and user.avatar:
             user.avatar.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        raise serializers.ValidationError('')
