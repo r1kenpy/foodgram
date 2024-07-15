@@ -37,14 +37,15 @@ DB_PORT=5432
 По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
 
 ### Чтобы запустить сервер без docker:
-1. Перейдите в папку /backend/
-2. Установите виртуальное окружение `python3 -m venv vevn`;
-3. Установите зависимости `pip install -r requirements.txt`;
-4. Установите миграции `python3 manage.py migrate`;
-5. Загрузите файл с данными ингредиентов и тегов `python3 manage.py upload_dumps`;
-5. Запустите сервер командой `python3 manage.py runserver`;
-6. Перейдите по http://localhost/admin/ и убедитесь что сервер заработал.
+1. Клонируйте репозиторий командой `git clone git@github.com:r1kenpy/foodgram.git`;
+2. Перейдите в папку /backend/;
+3. Установите виртуальное окружение `python3 -m venv vevn`;
+4. Установите зависимости `pip install -r requirements.txt`;
+5. Установите миграции `python3 manage.py migrate`;
+6. Загрузите файл с данными ингредиентов и тегов `python3 manage.py upload_dumps`;
+7. Запустите сервер командой `python3 manage.py runserver`;
+8. Перейдите по http://localhost/admin/ и убедитесь что сервер заработал.
 
 
 
-#### backend разработка Молчанов Владимир, t.me/r1ken0
+#### backend разработка [Молчанов Владимир](t.me/r1ken0)
