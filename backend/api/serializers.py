@@ -2,7 +2,6 @@ import base64
 
 from django.core.files.base import ContentFile
 from django.db.models import Sum
-from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
@@ -202,9 +201,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def add_ingredients_in_recipe(self, ingredients, recipe):
         AmountReceptIngredients.objects.bulk_create(
             AmountReceptIngredients(
-                ingredient=get_object_or_404(
-                    Ingredient, id=ingredient.get('id')
-                ),
+                ingredient=ingredient.get('id'),
                 amount=ingredient.get('amount'),
                 recipe=recipe,
             )
