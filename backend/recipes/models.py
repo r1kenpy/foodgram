@@ -118,7 +118,7 @@ class AmountReceptIngredients(models.Model):
         default_related_name = 'amount_ingredients'
 
     def __str__(self):
-        return f'{self.recipe.name[:20]}: {self.ingredient[:20]}'
+        return f'{self.recipe.name[:20]}: {self.ingredient.name[:20]}'
 
 
 class FavoriteAndCartBaseModel(models.Model):

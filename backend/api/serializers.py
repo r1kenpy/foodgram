@@ -3,7 +3,7 @@ import base64
 from django.core.files.base import ContentFile
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserSerializer
+from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
 from recipes.models import (
@@ -24,25 +24,26 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-def check_duplicates(ids: list, msg='errors'):
+def check_duplicates(ids: list, validated_field='errors'):
     no_duplicate_ingredients = set(ids)
     if len(ids) != len(no_duplicate_ingredients):
-        duplicate = set(
+        duplicates = set(
             id for id in no_duplicate_ingredients if ids.count(id) > 1
         )
         raise serializers.ValidationError(
-            {msg: f'Переданы одинаковые id: {duplicate}'}
+            {validated_field: f'Переданы одинаковые id: {duplicates}'}
         )
 
 
-class UserSerializer(UserSerializer):
+class UserSerializer(BaseUserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     avatar = Base64ImageField(read_only=True)
     username = serializers.CharField(max_length=150)
 
     class Meta:
         model = User
-        fields = UserSerializer.Meta.fields + (
+        fields = (
+            *BaseUserSerializer.Meta.fields,
             'is_subscribed',
             'avatar',
         )
@@ -87,8 +88,8 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
         model = AmountReceptIngredients
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
-    def get_amount(self, obj):
-        return obj.amount_ingredients.all().aggregate(amount=Sum('amount'))[
+    def get_amount(self, ingredient):
+        return ingredient.amount_ingredients.aggregate(amount=Sum('amount'))[
             'amount'
         ]
 
@@ -121,17 +122,17 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
 
-    def get_is_favorited(self, obj):
+    def get_is_favorited(self, recipe):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return obj.favorites.filter(user=user).exists()
+        return recipe.favorites.filter(user=user).exists()
 
-    def get_is_in_shopping_cart(self, obj):
+    def get_is_in_shopping_cart(self, recipe):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return obj.carts.filter(user=user).exists()
+        return recipe.carts.filter(user=user).exists()
 
 
 class WriteIngredientSerializer(serializers.ModelSerializer):
@@ -170,8 +171,10 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'ingredients': 'Необходимо минимум 1 ингредиент'}
             )
-        ingredients_id = [ingredient['id'] for ingredient in ingredients]
-        check_duplicates(ids=ingredients_id, msg='ingredients')
+        check_duplicates(
+            ids=[ingredient['id'] for ingredient in ingredients],
+            msg='ingredients',
+        )
         amount_less_zero = []
         for ingredient in ingredients:
             if ingredient['amount'] < 1:
@@ -191,22 +194,19 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'tags': 'Нужно передать хоть один Тег'}
             )
-        tags_id = [tag.id for tag in tags]
-        check_duplicates(ids=tags_id, msg='tags')
+        check_duplicates(ids=[tag.id for tag in tags], msg='tags')
         return attrs
 
     def add_ingredients_in_recipe(self, ingredients, recipe):
         AmountReceptIngredients.objects.bulk_create(
-            [
-                AmountReceptIngredients(
-                    ingredients=get_object_or_404(
-                        Ingredient, id=ingredient.get('id')
-                    ),
-                    amount=ingredient.get('amount'),
-                    recipe=recipe,
-                )
-                for ingredient in ingredients
-            ]
+            AmountReceptIngredients(
+                ingredients=get_object_or_404(
+                    Ingredient, id=ingredient.get('id')
+                ),
+                amount=ingredient.get('amount'),
+                recipe=recipe,
+            )
+            for ingredient in ingredients
         )
 
     def create(self, validated_data):
@@ -242,8 +242,4 @@ class SubscribeSerializer(UserSerializer):
             'recipes',
             'recipes_count',
         )
-        read_only_fields = (
-            *UserSerializer.Meta.fields,
-            'recipes',
-            'recipes_count',
-        )
+        read_only_fields = fields

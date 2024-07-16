@@ -3,6 +3,8 @@ import re
 from django.contrib.auth import settings
 from rest_framework import serializers
 
+print(re.findall(r'[\w.@+-]+(\W)', 'ival$ibal$use@!r%name-+=.'))
+
 
 def validate_username(
     username,
@@ -11,6 +13,8 @@ def validate_username(
         raise serializers.ValidationError(
             f'Укажите другой username: {username}'
         )
-    if not re.match(r'^[\w.@+-]+\Z$', username):
-        print(re.match('^[\w.@+-]+\Z$', username))
-        raise serializers.ValidationError('Искользованы недопустипые симполы')
+    invalid_simbol = re.sub(r'[\w.@+-]+', '', username)
+    if invalid_simbol:
+        raise serializers.ValidationError(
+            f'Искользованы недопустипые симполы: [{invalid_simbol}]'
+        )
