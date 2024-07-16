@@ -75,7 +75,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 user=request.user, recipe=recipe
             )
             if not is_created:
-                raise serializers.ValidationError('Запись уже существует.')
+                raise serializers.ValidationError(
+                    {'errors': 'Запись уже существует.'}
+                )
             return Response(
                 ShortRecipeSerializer(recipe).data,
                 status=status.HTTP_201_CREATED,
@@ -200,6 +202,10 @@ class UserViewSet(UserViewSet):
         user = request.user
         author = self.get_object()
         if request.method == 'POST':
+            if user == author:
+                raise serializers.ValidationError(
+                    {'errors': 'Нельзя подписаться на себя.'}
+                )
             _, is_created = Subscription.objects.get_or_create(
                 user=user,
                 author=author,

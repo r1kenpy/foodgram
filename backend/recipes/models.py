@@ -2,8 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import UniqueConstraint, F, CheckConstraint, Q
 from django.utils.translation import gettext_lazy as _
-from rest_framework.exceptions import ValidationError
 
 from .validators import validate_username
 
@@ -137,10 +137,6 @@ class FavoriteAndCartBaseModel(models.Model):
         ordering = ('-recipe',)
         abstract = True
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
-
 
 class Favorite(FavoriteAndCartBaseModel):
 
@@ -149,6 +145,9 @@ class Favorite(FavoriteAndCartBaseModel):
         verbose_name_plural = _('Избранное')
         default_related_name = 'favorites'
         abstract = False
+        constraints = [
+            UniqueConstraint(fields=('user', 'recipe'), name='unique_favorite')
+        ]
 
     def __str__(self):
         return (
@@ -156,10 +155,6 @@ class Favorite(FavoriteAndCartBaseModel):
             f'"{self.recipe.name[:20].title()}" '
             f'в избранном у {self.user.email[:20]}'
         )
-
-    def clean(self):
-        if self.recipe.favorites.filter(user=self.user).exists():
-            raise ValidationError({'errors': 'Рецепт уже в избранном!'})
 
 
 class ShoppingCart(FavoriteAndCartBaseModel):
@@ -169,6 +164,9 @@ class ShoppingCart(FavoriteAndCartBaseModel):
         verbose_name_plural = _('Корзина')
         default_related_name = 'carts'
         abstract = False
+        constraints = [
+            UniqueConstraint(fields=('user', 'recipe'), name='unique_cart')
+        ]
 
     def __str__(self):
         return (
@@ -176,10 +174,6 @@ class ShoppingCart(FavoriteAndCartBaseModel):
             f'"{self.recipe.name[:20].title()}" '
             f'в корзине у {self.user.email[:20]}'
         )
-
-    def clean(self):
-        if self.recipe.carts.filter(user=self.user).exists():
-            raise ValidationError({'errors': 'Рецепт уже есть в корзине!'})
 
 
 class Subscription(models.Model):
@@ -200,20 +194,14 @@ class Subscription(models.Model):
         verbose_name = _('Подписка')
         verbose_name_plural = _('Подписки')
         ordering = ('user',)
+        constraints = [
+            UniqueConstraint(
+                fields=('user', 'author'), name='unique_subscription'
+            ),
+            CheckConstraint(
+                check=~Q(author=F("user")), name="\nNo self sibscription\n"
+            ),
+        ]
 
     def __str__(self):
         return f'{self.user.email[:20]} подписан на {self.author.email[:20]}'
-
-    def clean(self):
-        if self.author == self.user:
-            raise ValidationError(
-                {'errors': 'Нельзя подписаться на самого себя'}
-            )
-        if self.author.authors.filter(user=self.user).exists():
-            raise ValidationError(
-                {'errors': 'Вы уже подписаны на этого пользователя'}
-            )
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
