@@ -24,15 +24,18 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-def check_duplicates(ids: list, validated_field='errors'):
-    no_duplicate_ingredients = set(ids)
-    if len(ids) != len(no_duplicate_ingredients):
-        duplicates = set(
-            id for id in no_duplicate_ingredients if ids.count(id) > 1
-        )
+def check_duplicates(ids: list, validated_field=''):
+    no_duplicate = set(ids)
+    duplicates = set(id for id in no_duplicate if ids.count(id) > 1)
+    if duplicates:
         raise serializers.ValidationError(
             {validated_field: f'Переданы одинаковые id: {duplicates}'}
         )
+
+
+def minimal_amount_tags_or_ingredients(objects, error_message='error'):
+    if objects is None or len(objects) == 0:
+        raise serializers.ValidationError(error_message)
 
 
 class UserSerializer(BaseUserSerializer):
@@ -167,13 +170,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
         tags = attrs.get('tags')
-        if ingredients is None or len(ingredients) == 0:
-            raise serializers.ValidationError(
-                {'ingredients': 'Необходимо минимум 1 ингредиент'}
-            )
+        minimal_amount_tags_or_ingredients(
+            ingredients, {'ingredients': 'Необходим минимум 1 ингредиент'}
+        )
+
         check_duplicates(
-            ids=[ingredient['id'] for ingredient in ingredients],
-            msg='ingredients',
+            [ingredient['id'] for ingredient in ingredients],
+            'ingredients',
         )
         amount_less_zero = []
         for ingredient in ingredients:
@@ -190,17 +193,16 @@ class RecipeSerializer(serializers.ModelSerializer):
                     )
                 }
             )
-        if tags is None or len(tags) == 0:
-            raise serializers.ValidationError(
-                {'tags': 'Нужно передать хоть один Тег'}
-            )
-        check_duplicates(ids=[tag.id for tag in tags], msg='tags')
+        minimal_amount_tags_or_ingredients(
+            tags, {'tags': 'Нужно передать хоть один Тег'}
+        )
+        check_duplicates([tag.id for tag in tags], 'tags')
         return attrs
 
     def add_ingredients_in_recipe(self, ingredients, recipe):
         AmountReceptIngredients.objects.bulk_create(
             AmountReceptIngredients(
-                ingredients=get_object_or_404(
+                ingredient=get_object_or_404(
                     Ingredient, id=ingredient.get('id')
                 ),
                 amount=ingredient.get('amount'),

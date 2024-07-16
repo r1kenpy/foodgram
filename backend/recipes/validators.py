@@ -3,8 +3,6 @@ import re
 from django.contrib.auth import settings
 from rest_framework import serializers
 
-print(re.findall(r'[\w.@+-]+(\W)', 'ival$ibal$use@!r%name-+=.'))
-
 
 def validate_username(
     username,
