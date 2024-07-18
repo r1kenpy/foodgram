@@ -135,27 +135,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         """Скачивание файла со списком и количеством ингредиентов."""
-        shopping_cart = ShoppingCart.objects.prefetch_related('recipe').filter(
-            user=request.user
+        shopping_cart_recipes = ShoppingCart.objects.prefetch_related(
+            'recipe'
+        ).filter(user=request.user)
+        shopping_cart_ingredients = (
+            Ingredient.objects.filter(recipes__carts__user=request.user)
+            .values("name", "measurement_unit")
+            .annotate(amount=Sum("amount_ingredients__amount"))
         )
-        ingredients = []
-        recipe_in_shopping_cart = []
-        numbering = 1
-        if shopping_cart:
-            for shopping_cart_item in shopping_cart:
-                recipe_in_shopping_cart.append(
-                    f'"{shopping_cart_item.recipe.name}"'
-                )
-                for ing in set(shopping_cart_item.recipe.ingredients.all()):
-                    ingredients.append(
-                        (
-                            f'{numbering}. {str(ing.name).capitalize()}('
-                            f'{ing.measurement_unit}): '
-                            f'{ing.amount_ingredients.aggregate(sum=Sum("amount"))["sum"]}'
-                        )
-                    )
-                    numbering += 1
-        buf = create_pdf_shopping_list(ingredients, recipe_in_shopping_cart)
+        buf = create_pdf_shopping_list(
+            shopping_cart_recipes, shopping_cart_ingredients
+        )
         return FileResponse(
             buf,
             filename='shopping_list.pdf',
