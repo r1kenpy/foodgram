@@ -5,13 +5,8 @@ from django.db.models import Sum
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
-from recipes.models import (
-    AmountReceptIngredients,
-    Ingredient,
-    Recipe,
-    Tag,
-    User,
-)
+from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
+                            User)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -201,7 +196,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def add_ingredients_in_recipe(self, ingredients, recipe):
         AmountReceptIngredients.objects.bulk_create(
             AmountReceptIngredients(
-                ingredient=ingredient.get('id'),
+                ingredient_id=ingredient.get('id'),
                 amount=ingredient.get('amount'),
                 recipe=recipe,
             )

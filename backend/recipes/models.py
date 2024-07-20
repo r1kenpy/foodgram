@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import UniqueConstraint, F, CheckConstraint, Q
+from django.db.models import CheckConstraint, F, Q, UniqueConstraint
 from django.utils.translation import gettext_lazy as _
 
 from .validators import validate_username
@@ -116,6 +116,12 @@ class AmountReceptIngredients(models.Model):
         verbose_name_plural = _('Мера')
         ordering = ('-amount',)
         default_related_name = 'amount_ingredients'
+        constraints = [
+            UniqueConstraint(
+                fields=('ingredient', 'recipe'),
+                name='unique_amount_ingredient',
+            )
+        ]
 
     def __str__(self):
         return f'{self.recipe.name[:20]}: {self.ingredient.name[:20]}'

@@ -39,12 +39,13 @@ DB_PORT=5432
 ### Чтобы запустить сервер без docker:
 1. Клонируйте репозиторий командой `git clone git@github.com:r1kenpy/foodgram.git`;
 2. Перейдите в папку /backend/;
-3. Установите виртуальное окружение `python3 -m venv vevn`;
-4. Установите зависимости `pip install -r requirements.txt`;
-5. Установите миграции `python3 manage.py migrate`;
-6. Загрузите файл с данными ингредиентов и тегов `python3 manage.py upload_dumps`;
-7. Запустите сервер командой `python3 manage.py runserver`;
-8. Перейдите по http://localhost/admin/ и убедитесь что сервер заработал.
+3. Установите виртуальное окружение для Linux или  MacOS `python3 -m venv vevn`, для Windows `python -m venv vevn`;
+4. Установите зависимости `pip install -r requirements.txt` ;
+5. Установите миграции Linux или  MacOS `python3 manage.py migrate`, для Windows `python manage.py migrate`;
+6. Перейдите в папку data для загрузки фикстур с данными;
+7. Загрузите файл с данными ингредиентов и тегов  Linux или  MacOS `python3 manage.py loaddata ingredients.json` и `python3 manage.py loaddata tags.json`. Для Windows используйте `python`;
+8. Запустите сервер командой  Linux или  MacOS `python3 manage.py runserver` или `python manage.py runserver` для Windows;
+9. Перейдите по http://localhost/admin/ и убедитесь что сервер заработал.
 
 
 
