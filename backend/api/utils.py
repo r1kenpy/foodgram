@@ -13,10 +13,8 @@ def create_pdf_shopping_list(recipes, ingridients):
     c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
     text = c.beginText()
     text.setTextOrigin(20, 20)
-    # pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
-    # text.setFont('DejaVuSans', 14)
-    pdfmetrics.registerFont(TTFont('Arial', 'Arial.ttf'))
-    text.setFont('Arial', 14)
+    pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+    text.setFont('DejaVuSans', 14)
     recipes_cart = [f'{recipe.recipe.name}' for recipe in recipes]
     if ingridients:
         ingridients_cart = [
