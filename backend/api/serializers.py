@@ -1,6 +1,7 @@
 import base64
 
 from django.core.files.base import ContentFile
+from django.db.models import F
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
@@ -22,18 +23,20 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-def check_duplicates(ids: list, validated_field=''):
+def minimal_amount_tags_or_ingredients_and_check_duplicates(
+    objects, ids: list, validated_field=''
+):
+    if objects is None or len(objects) == 0:
+        raise serializers.ValidationError(
+            {validated_field: 'Нужно передать хотя бы 1.'}
+        )
+
     no_duplicate = set(ids)
     duplicates = set(id for id in no_duplicate if ids.count(id) > 1)
     if duplicates:
         raise serializers.ValidationError(
             {validated_field: f'Переданы одинаковые id: {duplicates}'}
         )
-
-
-def minimal_amount_tags_or_ingredients(objects, error_message='error'):
-    if objects is None or len(objects) == 0:
-        raise serializers.ValidationError(error_message)
 
 
 class UserSerializer(BaseUserSerializer):
@@ -108,7 +111,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class ReadRecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    ingredients = ReceptIngredientSerializer(many=True)
+    ingredients = serializers.SerializerMethodField()
     author = UserSerializer()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -126,6 +129,14 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time',
+        )
+
+    def get_ingredients(self, recipe):
+        return recipe.ingredients.values(
+            'id',
+            'name',
+            'measurement_unit',
+            amount=F('amount_ingredients__amount'),
         )
 
     def get_is_favorited(self, recipe):
@@ -173,14 +184,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
         tags = attrs.get('tags')
-        minimal_amount_tags_or_ingredients(
-            ingredients, {'ingredients': 'Необходим минимум 1 продукт'}
+
+        minimal_amount_tags_or_ingredients_and_check_duplicates(
+            objects=ingredients,
+            ids=[ingredient['id'] for ingredient in ingredients],
+            validated_field='ingredients',
         )
 
-        check_duplicates(
-            [ingredient['id'] for ingredient in ingredients],
-            'ingredients',
-        )
         amount_less_zero = []
         for ingredient in ingredients:
             if ingredient['amount'] < 1:
@@ -196,10 +206,11 @@ class RecipeSerializer(serializers.ModelSerializer):
                     )
                 }
             )
-        minimal_amount_tags_or_ingredients(
-            tags, {'tags': 'Нужно передать хоть один Тег'}
+        minimal_amount_tags_or_ingredients_and_check_duplicates(
+            objects=tags,
+            ids=[tag.id for tag in tags],
+            validated_field='tags',
         )
-        check_duplicates([tag.id for tag in tags], 'tags')
         return attrs
 
     def add_ingredients_in_recipe(self, ingredients, recipe):
