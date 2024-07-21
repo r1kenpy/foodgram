@@ -5,13 +5,8 @@ from django.db.models import F
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
-from recipes.models import (
-    AmountReceptIngredients,
-    Ingredient,
-    Recipe,
-    Tag,
-    User,
-)
+from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
+                            User)
 
 
 class Base64ImageField(serializers.ImageField):

@@ -21,5 +21,5 @@ def validate_username(
 
 def validate_link(encode_id):
     if not re.match(r'[1-9]\d*', encode_id):
-        raise serializers.ValidationError({'errors': f'Неправильная ссылка.'})
+        raise serializers.ValidationError({'errors': 'Неправильная ссылка.'})
     return encode_id
