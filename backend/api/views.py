@@ -13,13 +13,25 @@ from rest_framework.response import Response
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (AvatarSerializer, IngredientSerializer,
-                             ReadRecipeSerializer, RecipeSerializer,
-                             ShortRecipeSerializer, SubscribeSerializer,
-                             TagSerializer, UserSerializer)
+from api.serializers import (
+    AvatarSerializer,
+    IngredientSerializer,
+    ReadRecipeSerializer,
+    RecipeSerializer,
+    ShortRecipeSerializer,
+    SubscribeSerializer,
+    TagSerializer,
+    UserSerializer,
+)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
-                            Subscription, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 User = get_user_model()
 
@@ -57,7 +69,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
 
     @staticmethod
-    def add_favorite_or_cart(request, model, pk=None):
+    def add_or_delete_favorite_or_cart(request, model, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
             _, is_created = model.objects.get_or_create(
@@ -96,7 +108,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавление или удаление рецепта из избранного."""
-        return self.add_favorite_or_cart(
+        return self.add_or_delete_favorite_or_cart(
             request,
             model=Favorite,
             pk=pk,
@@ -109,7 +121,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавление или удаление рецепта из корзины."""
-        return self.add_favorite_or_cart(
+        return self.add_or_delete_favorite_or_cart(
             request,
             model=ShoppingCart,
             pk=pk,

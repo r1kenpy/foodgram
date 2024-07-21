@@ -1,8 +1,9 @@
 import django_filters
 from django.contrib.auth import get_user_model
+from django_filters import filters
 from django_filters.widgets import BooleanWidget
 
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import Ingredient, Recipe
 
 User = get_user_model()
 
@@ -26,12 +27,7 @@ class RecipesFilter(django_filters.FilterSet):
         label='Корзина',
         widget=BooleanWidget(),
     )
-    tags = django_filters.ModelMultipleChoiceFilter(
-        field_name='tags__slug',
-        to_field_name='slug',
-        queryset=Tag.objects.all(),
-        conjoined=True,
-    )
+    tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
     author = django_filters.ModelChoiceFilter(queryset=User.objects.all())
 
     class Meta:

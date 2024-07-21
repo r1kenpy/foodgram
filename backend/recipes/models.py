@@ -3,24 +3,23 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, F, Q, UniqueConstraint
-from django.utils.translation import gettext_lazy as _
 
 from .validators import validate_username
 
 
 class User(AbstractUser):
     avatar = models.ImageField(
-        blank=True, null=True, upload_to='users/', verbose_name=_('Аватар')
+        blank=True, null=True, upload_to='users/', verbose_name='Аватар'
     )
     email = models.EmailField(
-        max_length=254, unique=True, verbose_name=_('Email')
+        max_length=254, unique=True, verbose_name='Email'
     )
-    first_name = models.CharField(_('Имя'), max_length=150)
-    last_name = models.CharField(_('Фамилия'), max_length=150)
+    first_name = models.CharField('Имя', max_length=150)
+    last_name = models.CharField('Фамилия', max_length=150)
     username = models.CharField(
         unique=True,
         max_length=150,
-        verbose_name=_('Псевдоним пользователя'),
+        verbose_name='Псевдоним пользователя',
         validators=[validate_username],
     )
 
@@ -28,20 +27,20 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     class Meta:
-        verbose_name = _('Пользователь')
-        verbose_name_plural = _('Пользователи')
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
         ordering = ('username',)
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=32, verbose_name=_('Название'))
+    name = models.CharField(max_length=32, verbose_name='Название')
     slug = models.SlugField(
-        max_length=32, verbose_name=_('Идентификатор'), unique=True
+        max_length=32, verbose_name='Идентификатор', unique=True
     )
 
     class Meta:
-        verbose_name = _('Тег')
-        verbose_name_plural = _('Теги')
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
         ordering = ('name',)
         default_related_name = 'tags'
 
@@ -51,15 +50,16 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        max_length=128, verbose_name=_('Название'), unique=True
+        max_length=128, verbose_name='Название', unique=True
     )
     measurement_unit = models.CharField(
-        max_length=64, verbose_name=_('Единица измерения')
+        max_length=64,
+        verbose_name='Единица измерения',
     )
 
     class Meta:
-        verbose_name = _('Продукт')
-        verbose_name_plural = _('Продукты')
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
         ordering = ('name',)
         default_related_name = 'ingredients'
 
@@ -69,29 +69,29 @@ class Ingredient(models.Model):
 
 class Recipe(models.Model):
     author = models.ForeignKey(
-        User, verbose_name=_('Автор'), on_delete=models.CASCADE
+        User, verbose_name='Автор', on_delete=models.CASCADE
     )
-    name = models.CharField(max_length=256, verbose_name=_('Название'))
-    text = models.TextField(verbose_name=_('Описание'))
+    name = models.CharField(max_length=256, verbose_name='Название')
+    text = models.TextField(verbose_name='Описание')
     image = models.ImageField(
-        verbose_name=_('Картинка'), upload_to='recipe/images/'
+        verbose_name='Картинка', upload_to='recipe/images/'
     )
     ingredients = models.ManyToManyField(
         Ingredient,
         through='AmountReceptIngredients',
-        verbose_name=_('Продукты'),
+        verbose_name='Продукты',
     )
-    tags = models.ManyToManyField(Tag, verbose_name=_('Теги'))
+    tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.IntegerField(
         validators=[
             MinValueValidator(limit_value=settings.MIN_VALUE_COOKING_TIME)
         ],
-        verbose_name=_('Время приготовления в минутах'),
+        verbose_name='Время приготовления в минутах',
     )
 
     class Meta:
-        verbose_name = _('Рецепт')
-        verbose_name_plural = _('Рецепты')
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
         ordering = ('name',)
         default_related_name = 'recipes'
 
@@ -105,15 +105,15 @@ class AmountReceptIngredients(models.Model):
         verbose_name='Мера',
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
     )
     ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, verbose_name=_('Продукт')
+        Ingredient, on_delete=models.CASCADE, verbose_name='Продукт'
     )
 
     class Meta:
-        verbose_name = 'Мера'
-        verbose_name_plural = 'Мера'
+        verbose_name = 'Количество ингредиентов в рецепте'
+        verbose_name_plural = 'Количество ингредиентов в рецептах'
         ordering = ('-amount',)
         default_related_name = 'amount_ingredients'
         constraints = [
@@ -134,12 +134,12 @@ class BaseRecipeUser(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name=_('Пользователь'),
+        verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name=_('Рецепт'),
+        verbose_name='Рецепт',
     )
 
     class Meta:
@@ -156,23 +156,23 @@ class BaseRecipeUser(models.Model):
         return (
             f'Рецепт '
             f'"{self.recipe.name[:20].title()}" '
-            f'уже добавлен {self.user.email[:20]}'
+            f' добавлен {self.user.email[:20]}'
         )
 
 
 class Favorite(BaseRecipeUser):
 
     class Meta(BaseRecipeUser.Meta):
-        verbose_name = _('Избранное')
-        verbose_name_plural = _('Избранное')
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
         default_related_name = 'favorites'
 
 
 class ShoppingCart(BaseRecipeUser):
 
     class Meta(BaseRecipeUser.Meta):
-        verbose_name = _('Корзина')
-        verbose_name_plural = _('Корзина')
+        verbose_name = 'Корзина'
+        verbose_name_plural = 'Корзина'
         default_related_name = 'carts'
 
 
@@ -180,26 +180,26 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name=_('Подписчик'),
+        verbose_name='Подписчик',
         related_name='subscribers',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name=_('Автор рецепта'),
+        verbose_name='Автор рецепта',
         related_name='authors',
     )
 
     class Meta:
-        verbose_name = _('Подписка')
-        verbose_name_plural = _('Подписки')
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         ordering = ('user',)
         constraints = [
             UniqueConstraint(
                 fields=('user', 'author'), name='unique_subscription'
             ),
             CheckConstraint(
-                check=~Q(author=F("user")), name="\nNo self sibscription\n"
+                check=~Q(author=F('user')), name='No_self_sibscription'
             ),
         ]
 
