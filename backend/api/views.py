@@ -4,7 +4,7 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import UserViewSet
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -13,13 +13,25 @@ from rest_framework.response import Response
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (AvatarSerializer, IngredientSerializer,
-                             ReadRecipeSerializer, RecipeSerializer,
-                             ShortRecipeSerializer, SubscribeSerializer,
-                             TagSerializer, UserSerializer)
+from api.serializers import (
+    AvatarSerializer,
+    IngredientSerializer,
+    ReadRecipeSerializer,
+    RecipeSerializer,
+    ShortRecipeSerializer,
+    SubscribeSerializer,
+    TagSerializer,
+    UserSerializer,
+)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
-                            Subscription, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 User = get_user_model()
 
@@ -56,9 +68,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ReadOrAuthorChangeRecipt,
     )
 
-    def add_favorite_or_cart(self, request, model, pk=None):
-        recipe = get_object_or_404(Recipe, pk=self.kwargs['pk'])
-        if self.request.method == 'POST':
+    @staticmethod
+    def add_favorite_or_cart(request, model, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        if request.method == 'POST':
             _, is_created = model.objects.get_or_create(
                 user=request.user, recipe=recipe
             )
@@ -71,9 +84,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED,
             )
 
-        get_object_or_404(
-            model, user=self.request.user, recipe=recipe
-        ).delete()
+        get_object_or_404(model, user=request.user, recipe=recipe).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer_class(self):
@@ -122,8 +133,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def download_shopping_cart(self, request):
-        """Скачивание файла со списком и количеством ингредиентов."""
-        shopping_cart_recipes = ShoppingCart.objects.prefetch_related(
+        """Скачивание файла со списком и количеством продуктов."""
+        recipes_in_shopping_cart = ShoppingCart.objects.prefetch_related(
             'recipe'
         ).filter(user=request.user)
         shopping_cart_ingredients = (
@@ -131,29 +142,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .values("name", "measurement_unit")
             .annotate(amount=Sum("amount_ingredients__amount"))
         )
-        buf = create_pdf_shopping_list(
-            shopping_cart_recipes, shopping_cart_ingredients
-        )
         return FileResponse(
-            buf,
+            create_pdf_shopping_list(
+                recipes_in_shopping_cart, shopping_cart_ingredients
+            ),
             filename='shopping_list.pdf',
         )
 
 
-class UserViewSet(UserViewSet):
+class UserViewSet(DjoserUserViewSet):
     '''Эндпоинт юзера. Позволяющий получить информацию
     об авторизованном юзере, зарегистрироваться, изменить или удалить аватар.
     '''
 
     serializer_class = UserSerializer
 
-    @action(
-        ('GET',),
-        detail=False,
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def me(self, request, *args, **kwargs):
-        return super().me(request, *args, **kwargs)
+    def get_permissions(self):
+        if self.request.path == '/api/users/me/':
+            return (permissions.IsAuthenticated(),)
+        return super().get_permissions()
 
     @action(
         detail=False,

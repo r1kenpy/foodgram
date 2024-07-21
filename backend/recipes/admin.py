@@ -5,8 +5,16 @@ from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
-                     ShoppingCart, Subscription, Tag, User)
+from .models import (
+    AmountReceptIngredients,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 
 @admin.register(Favorite)
@@ -28,6 +36,7 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug', 'number_of_recipes')
     search_fields = ('name', 'slug')
 
+    @display(description='Число рецептов')
     def number_of_recipes(self, tag):
         return tag.recipes.count()
 
@@ -61,8 +70,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @display(description='Картинка')
     @mark_safe
     def get_html_image(self, recipe):
-        if recipe.image:
-            return f'<img src="{recipe.image.url}" width="100px">'
+        return f'<img src="{recipe.image.url}" width="100px">'
 
     @display(description='Теги')
     def get_tags(self, recipe):
@@ -73,14 +81,22 @@ class RecipeAdmin(admin.ModelAdmin):
     def get_ingredients(self, recipe):
         return ''.join(
             [
-                f'<li>{i.name.title()}</li>'
-                for i in recipe.ingredients.all()
-                if i is not None
+                f'{recipe_ingredient.ingredient.name.title()}: '
+                f'{recipe_ingredient.amount}'
+                f'({recipe_ingredient.ingredient.measurement_unit})<br>'
+                for recipe_ingredient in recipe.amount_ingredients.all()
             ]
         )
 
+    @display(description='Избранное')
     def favorites(self, recipe):
         return recipe.favorites.count()
+
+    def queryset(self, request, queryset):
+        if self.value() == 'g':
+            return queryset.filter(measurement_unit='g')
+        elif self.value() == 'ml':
+            return queryset.filter(measurement_unit='ml')
 
 
 class IngredientInRecipesFilter(admin.SimpleListFilter):
@@ -106,7 +122,7 @@ class IngredientAdmin(admin.ModelAdmin):
         'recipe',
     )
     search_fields = ('name', 'measurement_unit')
-    list_filter = (IngredientInRecipesFilter,)
+    list_filter = (IngredientInRecipesFilter, 'measurement_unit')
 
     @display(description='Количество')
     def amount(self, ingredient):
@@ -114,6 +130,7 @@ class IngredientAdmin(admin.ModelAdmin):
             'sum'
         )
 
+    @display(description='Рецепты')
     def recipe(self, ingredient):
         return ingredient.recipes.count()
 
@@ -177,15 +194,15 @@ class UserAdmin(UserAdmin):
         CountAuthorFilter,
     )
 
-    @display(description='Количество рецептов')
+    @display(description='Рецептов')
     def count_recipes(self, user):
         return user.recipes.count()
 
-    @display(description='Количество подписок')
+    @display(description='Подписок')
     def count_subscribers(self, user):
         return user.subscribers.count()
 
-    @display(description='Количество подписчиков')
+    @display(description='Подписчиков')
     def count_author(self, user):
         return user.authors.count()
 

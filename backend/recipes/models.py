@@ -108,12 +108,12 @@ class AmountReceptIngredients(models.Model):
         Recipe, on_delete=models.CASCADE, verbose_name=_('Рецепт')
     )
     ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, verbose_name=_('Ингредиент')
+        Ingredient, on_delete=models.CASCADE, verbose_name=_('Продукт')
     )
 
     class Meta:
-        verbose_name = _('Мера')
-        verbose_name_plural = _('Мера')
+        verbose_name = 'Мера'
+        verbose_name_plural = 'Мера'
         ordering = ('-amount',)
         default_related_name = 'amount_ingredients'
         constraints = [
@@ -124,7 +124,10 @@ class AmountReceptIngredients(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.recipe.name[:20]}: {self.ingredient.name[:20]}'
+        return (
+            f'{self.recipe.name[:20]}: {self.ingredient.name[:20]}'
+            f'({self.ingredient.measurement_unit})'
+        )
 
 
 class FavoriteAndCartBaseModel(models.Model):
@@ -142,6 +145,19 @@ class FavoriteAndCartBaseModel(models.Model):
     class Meta:
         ordering = ('-recipe',)
         abstract = True
+        constraints = [
+            UniqueConstraint(
+                fields=('user', 'recipe'),
+                name='%recipes_unique',
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f'Рецепт '
+            f'"{self.recipe.name[:20].title()}" '
+            f'уже добавлен {self.user.email[:20]}'
+        )
 
 
 class Favorite(FavoriteAndCartBaseModel):
@@ -150,17 +166,6 @@ class Favorite(FavoriteAndCartBaseModel):
         verbose_name = _('Избранное')
         verbose_name_plural = _('Избранное')
         default_related_name = 'favorites'
-        abstract = False
-        constraints = [
-            UniqueConstraint(fields=('user', 'recipe'), name='unique_favorite')
-        ]
-
-    def __str__(self):
-        return (
-            f'Рецепт '
-            f'"{self.recipe.name[:20].title()}" '
-            f'в избранном у {self.user.email[:20]}'
-        )
 
 
 class ShoppingCart(FavoriteAndCartBaseModel):
@@ -169,17 +174,6 @@ class ShoppingCart(FavoriteAndCartBaseModel):
         verbose_name = _('Корзина')
         verbose_name_plural = _('Корзина')
         default_related_name = 'carts'
-        abstract = False
-        constraints = [
-            UniqueConstraint(fields=('user', 'recipe'), name='unique_cart')
-        ]
-
-    def __str__(self):
-        return (
-            f'Рецепт '
-            f'"{self.recipe.name[:20].title()}" '
-            f'в корзине у {self.user.email[:20]}'
-        )
 
 
 class Subscription(models.Model):

@@ -17,3 +17,9 @@ def validate_username(
             f'Искользованы недопустипые симполы: {set(invalid_simbol)}'
         )
     return username
+
+
+def validate_link(encode_id):
+    if not re.match(r'[1-9]\d*', encode_id):
+        raise serializers.ValidationError({'errors': f'Неправильная ссылка.'})
+    return encode_id

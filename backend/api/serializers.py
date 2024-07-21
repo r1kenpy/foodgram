@@ -1,12 +1,16 @@
 import base64
 
 from django.core.files.base import ContentFile
-from django.db.models import Sum
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
-from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
-                            User)
+from recipes.models import (
+    AmountReceptIngredients,
+    Ingredient,
+    Recipe,
+    Tag,
+    User,
+)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -35,7 +39,6 @@ def minimal_amount_tags_or_ingredients(objects, error_message='error'):
 class UserSerializer(BaseUserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     avatar = Base64ImageField(read_only=True)
-    username = serializers.CharField(max_length=150)
 
     class Meta:
         model = User
@@ -82,13 +85,19 @@ class ReceptIngredientSerializer(serializers.ModelSerializer):
     amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = AmountReceptIngredients
+        model = Ingredient
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
     def get_amount(self, ingredient):
-        return ingredient.amount_ingredients.aggregate(amount=Sum('amount'))[
-            'amount'
-        ]
+        return (
+            ingredient.amount_ingredients.filter(
+                recipe=self.context['request']
+                .parser_context.get('kwargs')
+                .get('pk')
+            )
+            .values()[0]
+            .get('amount')
+        )
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
@@ -165,7 +174,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients = attrs.get('ingredients')
         tags = attrs.get('tags')
         minimal_amount_tags_or_ingredients(
-            ingredients, {'ingredients': 'Необходим минимум 1 ингредиент'}
+            ingredients, {'ingredients': 'Необходим минимум 1 продукт'}
         )
 
         check_duplicates(
@@ -182,7 +191,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     'amount': (
-                        'Количество ингредиентов не может быть меньше 1: '
+                        'Количество продуктов не может быть меньше 1: '
                         f'{amount_less_zero}'
                     )
                 }
