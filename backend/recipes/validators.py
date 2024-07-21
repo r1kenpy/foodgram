@@ -14,5 +14,6 @@ def validate_username(
     invalid_simbol = re.sub(r'[\w.@+-]+', '', username)
     if invalid_simbol:
         raise serializers.ValidationError(
-            f'Искользованы недопустипые симполы: [{invalid_simbol}]'
+            f'Искользованы недопустипые симполы: {set(invalid_simbol)}'
         )
+    return username
