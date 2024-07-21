@@ -130,7 +130,7 @@ class AmountReceptIngredients(models.Model):
         )
 
 
-class FavoriteAndCartBaseModel(models.Model):
+class BaseRecipeUser(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -160,17 +160,17 @@ class FavoriteAndCartBaseModel(models.Model):
         )
 
 
-class Favorite(FavoriteAndCartBaseModel):
+class Favorite(BaseRecipeUser):
 
-    class Meta(FavoriteAndCartBaseModel.Meta):
+    class Meta(BaseRecipeUser.Meta):
         verbose_name = _('Избранное')
         verbose_name_plural = _('Избранное')
         default_related_name = 'favorites'
 
 
-class ShoppingCart(FavoriteAndCartBaseModel):
+class ShoppingCart(BaseRecipeUser):
 
-    class Meta(FavoriteAndCartBaseModel.Meta):
+    class Meta(BaseRecipeUser.Meta):
         verbose_name = _('Корзина')
         verbose_name_plural = _('Корзина')
         default_related_name = 'carts'
