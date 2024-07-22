@@ -51,7 +51,6 @@ class UserSerializer(BaseUserSerializer):
         )
 
     def get_is_subscribed(self, author):
-
         user = self.context['request'].user
         if user.is_anonymous:
             return False
@@ -81,6 +80,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class ReceptIngredientSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.CharField(read_only=True, source='ingredient.name')
     measurement_unit = serializers.CharField(
         read_only=True, source='ingredient.measurement_unit'
@@ -196,7 +196,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def add_ingredients_in_recipe(self, ingredients, recipe):
         AmountReceptIngredients.objects.bulk_create(
             AmountReceptIngredients(
-                ingredient_id=ingredient.get('id'),
+                ingredient_id=ingredient['id'],
                 amount=ingredient.get('amount'),
                 recipe=recipe,
             )
@@ -225,15 +225,23 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class SubscribeSerializer(UserSerializer):
-    recipes = ShortRecipeSerializer(many=True, read_only=True)
+    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
-        source='recipes.count', read_only=True
+        source='recipes.count',
     )
 
     class Meta(UserSerializer.Meta):
+
         fields = (
             *UserSerializer.Meta.fields,
             'recipes',
             'recipes_count',
         )
         read_only_fields = fields
+
+    def get_recipes(self, author):
+        limit = self.context['request'].query_params.get('recipes_limit', None)
+        recipes = author.recipes.all()
+        if limit is not None:
+            recipes = recipes[: int(limit)]
+        return ShortRecipeSerializer(recipes, many=True).data

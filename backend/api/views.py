@@ -11,15 +11,26 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipesFilter
-from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (AvatarSerializer, IngredientSerializer,
-                             ReadRecipeSerializer, RecipeSerializer,
-                             ShortRecipeSerializer, SubscribeSerializer,
-                             TagSerializer, UserSerializer)
+from api.serializers import (
+    AvatarSerializer,
+    IngredientSerializer,
+    ReadRecipeSerializer,
+    RecipeSerializer,
+    ShortRecipeSerializer,
+    SubscribeSerializer,
+    TagSerializer,
+    UserSerializer,
+)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
-                            Subscription, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 
 User = get_user_model()
 
@@ -155,13 +166,12 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
-        paginator = RecipesLimitPagination()
-        page = paginator.paginate_queryset(
-            User.objects.filter(authors__user=request.user), request
+        pagintated_queryset = self.paginate_queryset(
+            User.objects.filter(authors__user=request.user)
         )
-        serializer = self.serializer_class(page, many=True)
+        serializer = self.serializer_class(pagintated_queryset, many=True)
         serializer.context['request'] = self.request
-        return paginator.get_paginated_response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,

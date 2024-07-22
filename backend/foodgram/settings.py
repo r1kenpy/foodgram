@@ -150,7 +150,7 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend'
     ],
     'DEFAULT_PAGINATION_CLASS': 'api.paginations.RecipesLimitPagination',
-    'PAGE_SIZE': 5,
+    'PAGE_SIZE': 3,
 }
 DJOSER = {
     'LOGIN_FIELD': 'email',
