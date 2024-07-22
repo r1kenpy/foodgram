@@ -1,5 +1,4 @@
 import io
-from textwrap import wrap
 
 from django.utils import timezone
 from reportlab.lib.pagesizes import letter
@@ -20,23 +19,19 @@ def create_pdf_shopping_list(recipes, ingridients):
     if ingridients:
         ingridients_cart = [
             (
-                f'{ingridient["name"]}({ingridient["measurement_unit"]}):'
+                f'{ingridient["name"].capitalize()}({ingridient["measurement_unit"]}):'
                 f' {ingridient["amount"]}'
             )
             for ingridient in ingridients
         ]
-        recipes_cart = ' \n'.join(recipes_cart)
-        recipes_cart = (
-            f'Список покупок на {timezone.now().date()} для: {recipes_cart}'
-        )
-        wraped = '\n'.join(wrap(recipes_cart, 80))
+        recipes_cart = '\n'.join(recipes_cart)
+        text.textLine(f'Список покупок на {timezone.now().date()}:')
         ingridients_cart = '\n'.join(ingridients_cart)
-        text.textLines(wraped)
-
-        text.textLine('-----' * 25)
-        text.textLine('Нужно купить продукты:')
         text.textLine('')
         text.textLines(ingridients_cart)
+        text.textLine('-----' * 25)
+        text.textLine('Используются в рецептах:')
+        text.textLines(recipes_cart.capitalize())
     else:
         text.textLine('Список покупок пуст!')
     c.drawText(text)
