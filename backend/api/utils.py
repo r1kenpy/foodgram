@@ -14,10 +14,8 @@ def create_pdf_shopping_list(recipes, ingridients):
     c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
     text = c.beginText()
     text.setTextOrigin(20, 20)
-    # pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
-    # text.setFont('DejaVuSans', 14)
-    pdfmetrics.registerFont(TTFont('Arial', 'Arial.ttf'))
-    text.setFont('Arial', 14)
+    pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+    text.setFont('DejaVuSans', 14)
     recipes_cart = [f'{recipe.recipe.name}' for recipe in recipes]
     if ingridients:
         ingridients_cart = [
@@ -27,9 +25,9 @@ def create_pdf_shopping_list(recipes, ingridients):
             )
             for ingridient in ingridients
         ]
+        recipes_cart = ' \n'.join(recipes_cart)
         recipes_cart = (
-            f'Список покупок на {timezone.now().date()} для: '
-            + ' \n'.join(recipes_cart)
+            f'Список покупок на {timezone.now().date()} для: {recipes_cart}'
         )
         wraped = '\n'.join(wrap(recipes_cart, 80))
         ingridients_cart = '\n'.join(ingridients_cart)

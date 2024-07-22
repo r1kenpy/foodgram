@@ -134,9 +134,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         """Скачивание файла со списком и количеством продуктов."""
-        recipes_in_shopping_cart = ShoppingCart.objects.prefetch_related(
-            'recipe'
-        ).filter(user=request.user)
+        recipes_in_shopping_cart = request.user.carts.all()
         shopping_cart_ingredients = (
             Ingredient.objects.filter(recipes__carts__user=request.user)
             .values("name", "measurement_unit")
@@ -158,7 +156,7 @@ class UserViewSet(DjoserUserViewSet):
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.request.path == '/api/users/me/':
+        if self.action == 'me':
             return (permissions.IsAuthenticated(),)
         return super().get_permissions()
 

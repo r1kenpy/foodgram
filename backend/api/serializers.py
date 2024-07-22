@@ -1,12 +1,16 @@
 import base64
 
 from django.core.files.base import ContentFile
-from django.db.models import F
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
-from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
-                            User)
+from recipes.models import (
+    AmountReceptIngredients,
+    Ingredient,
+    Recipe,
+    Tag,
+    User,
+)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -19,9 +23,9 @@ class Base64ImageField(serializers.ImageField):
 
 
 def minimal_amount_tags_or_ingredients_and_check_duplicates(
-    objects, ids: list, validated_field=''
+    ids: list, validated_field=''
 ):
-    if objects is None or len(objects) == 0:
+    if ids is None or len(ids) == 0:
         raise serializers.ValidationError(
             {validated_field: 'Нужно передать хотя бы 1.'}
         )
@@ -77,25 +81,14 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class ReceptIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    measurement_unit = serializers.CharField(read_only=True)
-    amount = serializers.SerializerMethodField(read_only=True)
+    name = serializers.CharField(read_only=True, source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        read_only=True, source='ingredient.measurement_unit'
+    )
 
     class Meta:
-        model = Ingredient
+        model = AmountReceptIngredients
         fields = ('id', 'name', 'measurement_unit', 'amount')
-
-    def get_amount(self, ingredient):
-        return (
-            ingredient.amount_ingredients.filter(
-                recipe=self.context['request']
-                .parser_context.get('kwargs')
-                .get('pk')
-            )
-            .values()[0]
-            .get('amount')
-        )
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
@@ -106,7 +99,9 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class ReadRecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    ingredients = serializers.SerializerMethodField()
+    ingredients = ReceptIngredientSerializer(
+        many=True, source='amount_ingredients'
+    )
     author = UserSerializer()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -124,14 +119,6 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time',
-        )
-
-    def get_ingredients(self, recipe):
-        return recipe.ingredients.values(
-            'id',
-            'name',
-            'measurement_unit',
-            amount=F('amount_ingredients__amount'),
         )
 
     def get_is_favorited(self, recipe):
@@ -181,7 +168,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = attrs.get('tags')
 
         minimal_amount_tags_or_ingredients_and_check_duplicates(
-            objects=ingredients,
             ids=[ingredient['id'] for ingredient in ingredients],
             validated_field='ingredients',
         )
@@ -202,7 +188,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 }
             )
         minimal_amount_tags_or_ingredients_and_check_duplicates(
-            objects=tags,
             ids=[tag.id for tag in tags],
             validated_field='tags',
         )

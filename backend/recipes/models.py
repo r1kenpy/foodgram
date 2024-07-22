@@ -199,7 +199,7 @@ class Subscription(models.Model):
                 fields=('user', 'author'), name='unique_subscription'
             ),
             CheckConstraint(
-                check=~Q(author=F('user')), name='No_self_sibscription'
+                check=~Q(author=F('user')), name='no_self_sibscription'
             ),
         ]
 
