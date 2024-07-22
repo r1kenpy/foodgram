@@ -112,8 +112,8 @@ class AmountReceptIngredients(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Количество ингредиентов в рецепте'
-        verbose_name_plural = 'Количество ингредиентов в рецептах'
+        verbose_name = 'Продукт с количеством в рецепте'
+        verbose_name_plural = 'Продукт с количеством в рецептах'
         ordering = ('-amount',)
         default_related_name = 'amount_ingredients'
         constraints = [

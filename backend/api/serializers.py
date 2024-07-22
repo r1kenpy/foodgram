@@ -4,8 +4,13 @@ from django.core.files.base import ContentFile
 from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
-from recipes.models import (AmountReceptIngredients, Ingredient, Recipe, Tag,
-                            User)
+from recipes.models import (
+    AmountReceptIngredients,
+    Ingredient,
+    Recipe,
+    Tag,
+    User,
+)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -20,9 +25,9 @@ class Base64ImageField(serializers.ImageField):
 def minimal_amount_tags_or_ingredients_and_check_duplicates(
     ids: list, validated_field=''
 ):
-    if ids is None or len(ids) == 0:
+    if not ids:
         raise serializers.ValidationError(
-            {validated_field: 'Нужно передать хотя бы 1.'}
+            {validated_field: 'Обязательное поле.'}
         )
 
     no_duplicate = set(ids)
