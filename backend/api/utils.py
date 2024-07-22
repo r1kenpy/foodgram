@@ -19,7 +19,8 @@ def create_pdf_shopping_list(recipes, ingridients):
     if ingridients:
         ingridients_cart = [
             (
-                f'{ingridient["name"].capitalize()}({ingridient["measurement_unit"]}):'
+                f'{ingridient["name"].capitalize()}'
+                f'({ingridient["measurement_unit"]}):'
                 f' {ingridient["amount"]}'
             )
             for ingridient in ingridients

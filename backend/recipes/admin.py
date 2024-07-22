@@ -6,16 +6,8 @@ from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
 from .forms import IngredientChoiceField
-from .models import (
-    AmountReceptIngredients,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-    User,
-)
+from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
+                     ShoppingCart, Subscription, Tag, User)
 
 
 @admin.register(
