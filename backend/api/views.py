@@ -13,25 +13,13 @@ from rest_framework.response import Response
 from api.filters import IngredientFilter, RecipesFilter
 from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
-from api.serializers import (
-    AvatarSerializer,
-    IngredientSerializer,
-    ReadRecipeSerializer,
-    RecipeSerializer,
-    ShortRecipeSerializer,
-    SubscribeSerializer,
-    TagSerializer,
-    UserSerializer,
-)
+from api.serializers import (AvatarSerializer, IngredientSerializer,
+                             ReadRecipeSerializer, RecipeSerializer,
+                             ShortRecipeSerializer, SubscribeSerializer,
+                             TagSerializer, UserSerializer)
 from api.utils import create_pdf_shopping_list
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
+from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
+                            Subscription, Tag)
 
 User = get_user_model()
 

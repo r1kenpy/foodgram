@@ -5,16 +5,8 @@ from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .models import (
-    AmountReceptIngredients,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-    User,
-)
+from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
+                     ShoppingCart, Subscription, Tag, User)
 
 
 @admin.register(AmountReceptIngredients)
