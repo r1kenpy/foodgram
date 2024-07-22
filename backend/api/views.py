@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipesFilter
+from api.paginations import RecipesLimitPagination
 from api.permissions import ReadOrAuthorChangeRecipt
 from api.serializers import (AvatarSerializer, IngredientSerializer,
                              ReadRecipeSerializer, RecipeSerializer,
@@ -154,12 +155,13 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
-        pagintated_queryset = self.paginate_queryset(
-            User.objects.filter(authors__user=request.user)
+        paginator = RecipesLimitPagination()
+        page = paginator.paginate_queryset(
+            User.objects.filter(authors__user=request.user), request
         )
-        serializer = self.serializer_class(pagintated_queryset, many=True)
+        serializer = self.serializer_class(page, many=True)
         serializer.context['request'] = self.request
-        return self.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
