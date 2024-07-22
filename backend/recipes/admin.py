@@ -5,23 +5,33 @@ from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
-                     ShoppingCart, Subscription, Tag, User)
+from .forms import IngredientChoiceField
+from .models import (
+    AmountReceptIngredients,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 
-@admin.register(AmountReceptIngredients)
+@admin.register(
+    AmountReceptIngredients,
+)
 class AmountReceptIngredientsAdmin(admin.ModelAdmin):
     list_display = (
         'ingredient',
         'recipe',
         'amount',
-        'measurement_unit',
     )
-    readonly_fields = ('measurement_unit',)
 
-    @display(description='Единица измерения')
-    def measurement_unit(self, amount_ingredients):
-        return amount_ingredients.ingredient.measurement_unit
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'ingredient':
+            return IngredientChoiceField(queryset=Ingredient.objects.all())
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Favorite)
@@ -51,19 +61,11 @@ class TagAdmin(admin.ModelAdmin):
 class RecipeInline(admin.StackedInline):
     model = AmountReceptIngredients
     extra = 0
-    fieldsets = [
-        (
-            None,
-            {
-                'fields': [('ingredient', 'amount', 'measurement_unit')],
-            },
-        ),
-    ]
-    readonly_fields = ('measurement_unit',)
 
-    @display(description='Единица измерения')
-    def measurement_unit(self, recipe):
-        return recipe.ingredient.measurement_unit
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'ingredient':
+            return IngredientChoiceField(queryset=Ingredient.objects.all())
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Recipe)
@@ -166,6 +168,4 @@ class UserAdmin(UserAdmin):
 
 
 admin.site.register((Subscription,))
-
-
 admin.site.unregister(Group)
