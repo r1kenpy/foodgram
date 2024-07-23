@@ -32,7 +32,7 @@ def create_pdf_shopping_list(recipes, ingridients):
         text.textLines(ingridients_cart)
         text.textLine('-----' * 25)
         text.textLine('Используются в рецептах:')
-        text.textLines(recipes_cart.capitalize())
+        text.textLines(recipes_cart)
     else:
         text.textLine('Список покупок пуст!')
     c.drawText(text)

@@ -6,8 +6,16 @@ from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
 from .forms import IngredientChoiceField
-from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
-                     ShoppingCart, Subscription, Tag, User)
+from .models import (
+    AmountReceptIngredients,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+    User,
+)
 
 
 @admin.register(
@@ -95,7 +103,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def get_ingredients(self, recipe):
         return '<br>'.join(
             [
-                f'{recipe_ingredient.ingredient.name.title()}: '
+                f'{recipe_ingredient.ingredient.name}: '
                 f'{recipe_ingredient.amount}'
                 f'({recipe_ingredient.ingredient.measurement_unit})'
                 for recipe_ingredient in recipe.amount_ingredients.all()
