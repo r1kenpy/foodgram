@@ -235,8 +235,9 @@ class SubscribeSerializer(UserSerializer):
         read_only_fields = fields
 
     def get_recipes(self, author):
-        limit = self.context['request'].query_params.get('recipes_limit', None)
-        recipes = author.recipes.all()
-        if limit is not None:
-            recipes = recipes[: int(limit)]
-        return ShortRecipeSerializer(recipes, many=True).data
+        return ShortRecipeSerializer(
+            author.recipes.all()[
+                : int(self.context['request'].GET.get('recipes_limit', 10**10))
+            ],
+            many=True,
+        ).data
