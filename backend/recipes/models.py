@@ -64,7 +64,7 @@ class Ingredient(models.Model):
         default_related_name = 'ingredients'
 
     def __str__(self):
-        return self.name[:20]
+        return f'{self.name} ({self.measurement_unit})'
 
 
 class Recipe(models.Model):
@@ -113,7 +113,7 @@ class AmountReceptIngredients(models.Model):
 
     class Meta:
         verbose_name = 'Продукт с количеством в рецепте'
-        verbose_name_plural = 'Продукт с количеством в рецептах'
+        verbose_name_plural = 'Продукты с количеством в рецепте'
         ordering = ('-amount',)
         default_related_name = 'amount_ingredients'
         constraints = [

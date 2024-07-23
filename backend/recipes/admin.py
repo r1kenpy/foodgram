@@ -5,33 +5,8 @@ from django.contrib.auth.models import Group
 from django.db.models import Sum
 from django.utils.safestring import mark_safe
 
-from .forms import IngredientChoiceField
-from .models import (
-    AmountReceptIngredients,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-    User,
-)
-
-
-@admin.register(
-    AmountReceptIngredients,
-)
-class AmountReceptIngredientsAdmin(admin.ModelAdmin):
-    list_display = (
-        'ingredient',
-        'recipe',
-        'amount',
-    )
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'ingredient':
-            return IngredientChoiceField(queryset=Ingredient.objects.all())
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+from .models import (AmountReceptIngredients, Favorite, Ingredient, Recipe,
+                     ShoppingCart, Subscription, Tag, User)
 
 
 @admin.register(Favorite)
@@ -61,11 +36,6 @@ class TagAdmin(admin.ModelAdmin):
 class RecipeInline(admin.StackedInline):
     model = AmountReceptIngredients
     extra = 0
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'ingredient':
-            return IngredientChoiceField(queryset=Ingredient.objects.all())
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Recipe)
